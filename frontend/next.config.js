@@ -8,14 +8,8 @@ const nextConfig = {
     env: {
         CUSTOM_KEY: 'my-value',
     },
-    async rewrites() {
-        return [
-            {
-                source: '/api/:path*',
-                destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/:path*`,
-            },
-        ]
-    },
+    // Note: rewrites() don't work with output: 'export'
+    // API calls should be made directly to NEXT_PUBLIC_BACKEND_URL
 }
 
 module.exports = nextConfig

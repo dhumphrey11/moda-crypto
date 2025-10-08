@@ -113,7 +113,7 @@ def setup_backend():
     venv_dir = backend_dir / "venv"
     if not venv_dir.exists():
         print("Creating Python virtual environment...")
-        result = run_command("python -m venv venv", cwd=backend_dir)
+        result = run_command("python3 -m venv venv", cwd=backend_dir)
         if not result:
             print("❌ Failed to create virtual environment")
             return False

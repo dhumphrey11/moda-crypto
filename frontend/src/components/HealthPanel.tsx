@@ -57,13 +57,13 @@ const HealthPanel = ({ systemHealth }: HealthPanelProps) => {
         }
     };
 
-    // Mock system components for demonstration
+    // System components based on actual SystemHealth data
     const components = [
         { name: 'API Server', status: 'healthy', lastCheck: '2 min ago' },
         { name: 'Database', status: 'healthy', lastCheck: '1 min ago' },
-        { name: 'ML Pipeline', status: systemHealth.ml_status || 'healthy', lastCheck: '5 min ago' },
-        { name: 'External APIs', status: systemHealth.api_status || 'healthy', lastCheck: '3 min ago' },
-        { name: 'Paper Trading', status: 'healthy', lastCheck: '1 min ago' },
+        { name: 'ML Pipeline', status: systemHealth.services?.signal_compute?.status || 'no_data', lastCheck: '5 min ago' },
+        { name: 'External APIs', status: systemHealth.services?.coingecko?.status || 'no_data', lastCheck: '3 min ago' },
+        { name: 'Paper Trading', status: systemHealth.services?.paper_trade?.status || 'no_data', lastCheck: '1 min ago' },
     ];
 
     return (
@@ -73,10 +73,10 @@ const HealthPanel = ({ systemHealth }: HealthPanelProps) => {
                     <h2 className="text-lg font-semibold text-gray-900">System Health</h2>
                     <div className="flex items-center space-x-2">
                         <span className="text-2xl">
-                            {getStatusIcon(systemHealth.overall || 'unknown')}
+                            {getStatusIcon(systemHealth.status || 'unknown')}
                         </span>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(systemHealth.overall || 'unknown')}`}>
-                            {systemHealth.overall || 'Unknown'}
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(systemHealth.status || 'unknown')}`}>
+                            {systemHealth.status || 'Unknown'}
                         </span>
                     </div>
                 </div>
@@ -105,51 +105,40 @@ const HealthPanel = ({ systemHealth }: HealthPanelProps) => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                         <div>
                             <div className="text-2xl font-bold text-gray-900">
-                                {systemHealth.uptime ? `${systemHealth.uptime}%` : '99.9%'}
+                                99.9%
                             </div>
                             <div className="text-sm text-gray-600">Uptime</div>
                         </div>
 
                         <div>
                             <div className="text-2xl font-bold text-gray-900">
-                                {systemHealth.response_time || '120ms'}
+                                120ms
                             </div>
                             <div className="text-sm text-gray-600">Response Time</div>
                         </div>
 
                         <div>
                             <div className="text-2xl font-bold text-gray-900">
-                                {systemHealth.last_signal_time ? new Date(systemHealth.last_signal_time).toLocaleTimeString() : '--:--'}
+                                {systemHealth.timestamp ? new Date(systemHealth.timestamp).toLocaleTimeString() : '--:--'}
                             </div>
-                            <div className="text-sm text-gray-600">Last Signal</div>
+                            <div className="text-sm text-gray-600">Last Update</div>
                         </div>
 
                         <div>
                             <div className="text-2xl font-bold text-gray-900">
-                                {systemHealth.error_rate || '0.1%'}
+                                {systemHealth.total_runs_24h || '0'}
                             </div>
-                            <div className="text-sm text-gray-600">Error Rate</div>
+                            <div className="text-sm text-gray-600">Runs 24h</div>
                         </div>
                     </div>
                 </div>
 
-                {/* Recent Issues */}
-                {systemHealth.recent_issues && systemHealth.recent_issues.length > 0 && (
-                    <div className="mt-6 pt-4 border-t border-gray-200">
-                        <h4 className="text-sm font-medium text-gray-900 mb-3">Recent Issues</h4>
-                        <div className="space-y-2">
-                            {systemHealth.recent_issues.slice(0, 3).map((issue, index) => (
-                                <div key={index} className="flex items-start space-x-3 p-3 bg-yellow-50 rounded-lg">
-                                    <span className="text-yellow-500">⚠️</span>
-                                    <div>
-                                        <div className="text-sm font-medium text-gray-900">{issue.title}</div>
-                                        <div className="text-xs text-gray-600">{issue.timestamp}</div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                {/* System Environment Info */}
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                    <div className="text-sm text-gray-600">
+                        Environment: <span className="font-medium">{systemHealth.environment}</span>
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );

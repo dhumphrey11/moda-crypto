@@ -1,7 +1,13 @@
 import { Signal } from '@/types';
 
-interface SignalCardProps {
-    signal: Signal;
+interface SignalCardProps {                        <div className="mt-2 text-sm text-gray-600">
+                            <div>Confidence: {(signal.confidence * 100).toFixed(1)}%</div>
+                            <div>Composite Score: {signal.composite_score.toFixed(3)}</div>
+                        </div>
+
+                        <div className="mt-2 text-xs text-gray-500">
+                            Generated: {formatTimestamp(signal.timestamp.toISOString())}
+                        </div>Signal;
     rank?: number;
     onClick?: () => void;
 }
@@ -53,9 +59,9 @@ const SignalCard = ({ signal, rank, onClick }: SignalCardProps) => {
                             )}
 
                             <div className="flex items-center space-x-2">
-                                <span className="font-semibold text-gray-900">{signal.token_symbol}</span>
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getSignalTypeColor(signal.signal_type)}`}>
-                                    {signal.signal_type}
+                                <span className="font-semibold text-gray-900">{signal.token_id}</span>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getSignalTypeColor(signal.action)}`}>
+                                    {signal.action.toUpperCase()}
                                 </span>
                             </div>
                         </div>

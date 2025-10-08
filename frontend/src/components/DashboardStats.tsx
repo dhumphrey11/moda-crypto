@@ -17,15 +17,15 @@ const DashboardStats = ({ signals, portfolio, systemHealth }: DashboardStatsProp
         },
         {
             name: 'Portfolio Value',
-            value: portfolio ? `$${portfolio.totalValue?.toLocaleString() || '0'}` : '$0',
-            change: portfolio?.totalReturn ? `${(portfolio.totalReturn * 100).toFixed(2)}%` : '0%',
-            changeType: (portfolio?.totalReturn || 0) >= 0 ? 'positive' as const : 'negative' as const,
+            value: portfolio ? `$${portfolio.summary?.total_value?.toLocaleString() || '0'}` : '$0',
+            change: portfolio?.summary?.total_pnl_pct ? `${(portfolio.summary.total_pnl_pct * 100).toFixed(2)}%` : '0%',
+            changeType: (portfolio?.summary?.total_pnl_pct || 0) >= 0 ? 'positive' as const : 'negative' as const,
             icon: '💼'
         },
         {
             name: 'System Health',
-            value: systemHealth?.overall || 'Unknown',
-            change: systemHealth?.uptime ? `${systemHealth.uptime}% uptime` : 'N/A',
+            value: systemHealth?.status || 'Unknown',
+            change: systemHealth?.total_runs_24h ? `${systemHealth.total_runs_24h} runs` : 'N/A',
             changeType: 'neutral' as const,
             icon: '🔧'
         },

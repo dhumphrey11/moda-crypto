@@ -1,0 +1,71 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Single-user personal crypto trading app
+    // Simple authentication-based access control
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // All collections - read/write for authenticated user
+    // This is a personal app with single user, so simplified security
+    
+    // Trading signals
+    match /signals/{signalId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Centralized portfolio (single portfolio for the app)
+    match /portfolio/{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // System health and monitoring
+    match /system_health/{healthId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Trades (centralized - no user-specific collections)
+    match /trades/{tradeId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // App configuration
+    match /config/{configId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // ML Models and data
+    match /models/{modelId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Token/crypto data
+    match /tokens/{tokenId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // API keys and settings (single user, so allow access)
+    match /api_keys/{keyId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Audit/activity logs
+    match /logs/{logId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Notifications and alerts
+    match /notifications/{notificationId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Allow authenticated user to access all collections
+    match /{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}

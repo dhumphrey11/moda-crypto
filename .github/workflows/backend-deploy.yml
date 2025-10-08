@@ -63,21 +63,22 @@ jobs:
 
     - name: Deploy to Cloud Run
       run: |
-        # Create environment file to handle special characters properly
+        # Create environment file with proper handling of special characters
         cat > /tmp/env.yaml << EOF
-        ENVIRONMENT: production
-        FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-        FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
-        FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
-        FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
-        COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
-        MORALIS_API_KEY: ${{ secrets.MORALIS_API_KEY }}
-        COVALENT_API_KEY: ${{ secrets.COVALENT_API_KEY }}
-        LUNARCRUSH_API_KEY: ${{ secrets.LUNARCRUSH_API_KEY }}
-        COINMARKETCAL_API_KEY: ${{ secrets.COINMARKETCAL_API_KEY }}
-        CRYPTOPANIC_API_KEY: ${{ secrets.CRYPTOPANIC_API_KEY }}
-        COINBASE_API_KEY: ${{ secrets.COINBASE_API_KEY }}
-        COINBASE_API_SECRET: ${{ secrets.COINBASE_API_SECRET }}
+        ENVIRONMENT=production
+        FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
+        FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}
+        FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}
+        COINGECKO_API_KEY=${{ secrets.COINGECKO_API_KEY }}
+        MORALIS_API_KEY=${{ secrets.MORALIS_API_KEY }}
+        COVALENT_API_KEY=${{ secrets.COVALENT_API_KEY }}
+        LUNARCRUSH_API_KEY=${{ secrets.LUNARCRUSH_API_KEY }}
+        COINMARKETCAL_API_KEY=${{ secrets.COINMARKETCAL_API_KEY }}
+        CRYPTOPANIC_API_KEY=${{ secrets.CRYPTOPANIC_API_KEY }}
+        COINBASE_API_KEY=${{ secrets.COINBASE_API_KEY }}
+        COINBASE_API_SECRET=${{ secrets.COINBASE_API_SECRET }}
+        COINBASE_PASSPHRASE=${{ secrets.COINBASE_PASSPHRASE }}
+        FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}
         EOF
         
         gcloud run deploy $SERVICE_NAME \

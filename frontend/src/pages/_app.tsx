@@ -1,7 +1,7 @@
 import type { AppProps } from 'next/app';
 import { useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase';
+import { auth } from '../lib/firebase';
 import Layout from '@/components/Layout';
 import LoginPage from '@/components/LoginPage';
 import LoadingSpinner from '@/components/LoadingSpinner';

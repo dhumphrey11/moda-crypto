@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { NextPage } from 'next';
 import Head from 'next/head';
-import DashboardStats from '@/components/DashboardStats';
-import SignalCard from '@/components/SignalCard';
-import PortfolioTable from '@/components/PortfolioTable';
-import HealthPanel from '@/components/HealthPanel';
-import LoadingSpinner from '@/components/LoadingSpinner';
-import { dataService } from '@/lib/firestore';
-import { Signal, Portfolio, SystemHealth } from '@/types';
+import DashboardStats from '../components/DashboardStats';
+import SignalCard from '../components/SignalCard';
+import PortfolioTable from '../components/PortfolioTable';
+import HealthPanel from '../components/HealthPanel';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { dataService } from '../lib/firestore';
+import { Signal, Portfolio, SystemHealth } from '../types';
 
 interface DashboardData {
     signals: Signal[];

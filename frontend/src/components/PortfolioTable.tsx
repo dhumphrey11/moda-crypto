@@ -1,4 +1,4 @@
-import { Portfolio } from '@/types';
+import { Portfolio } from '../types';
 
 interface PortfolioTableProps {
     portfolio: Portfolio | null;

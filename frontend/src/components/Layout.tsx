@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useAuth } from '@/lib';
+import { useAuth } from '../lib';
 
 interface LayoutProps {
     children: ReactNode;

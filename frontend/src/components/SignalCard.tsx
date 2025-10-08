@@ -1,4 +1,4 @@
-import { Signal } from '@/types';
+import { Signal } from '../types';
 
 interface SignalCardProps {
     signal: Signal;

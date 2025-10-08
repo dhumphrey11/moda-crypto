@@ -1,4 +1,4 @@
-import { Signal, Portfolio, SystemHealth } from '@/types';
+import { Signal, Portfolio, SystemHealth } from '../types';
 
 interface DashboardStatsProps {
     signals: Signal[];

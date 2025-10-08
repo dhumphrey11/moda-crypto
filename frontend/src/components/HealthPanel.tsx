@@ -1,4 +1,4 @@
-import { SystemHealth } from '@/types';
+import { SystemHealth } from '../types';
 
 interface HealthPanelProps {
     systemHealth: SystemHealth | null;

@@ -1,11 +1,11 @@
 import type { AppProps } from 'next/app';
 import { useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase';
-import Layout from '@/components/Layout';
-import LoginPage from '@/components/LoginPage';
-import LoadingSpinner from '@/components/LoadingSpinner';
-import '@/styles/globals.css';
+import { auth } from '../lib/firebase';
+import Layout from '../components/Layout';
+import LoginPage from '../components/LoginPage';
+import LoadingSpinner from '../components/LoadingSpinner';
+import '../styles/globals.css';
 
 export default function App({ Component, pageProps }: AppProps) {
     const [user, loading, error] = useAuthState(auth);

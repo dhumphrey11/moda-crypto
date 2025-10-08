@@ -256,4 +256,4 @@ cdp_api_key.json
 moda-crypto-sa-key.json
 
 # Docker
-.dockerignore
+.dockerignore.env.example

@@ -67,7 +67,7 @@ jobs:
         cat > firebase.json << EOF
         {
           "hosting": {
-            "public": ".next/out",
+            "public": "out",
             "ignore": [
               "firebase.json",
               "**/.*",
@@ -100,7 +100,7 @@ jobs:
         echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" > firebase-service-account.json
         export GOOGLE_APPLICATION_CREDENTIALS="firebase-service-account.json"
         
-        firebase deploy --only hosting --project ${{ secrets.FIREBASE_PROJECT_ID }} --token "${{ secrets.FIREBASE_TOKEN }}"
+        firebase deploy --only hosting --project ${{ secrets.FIREBASE_PROJECT_ID }}
 
     - name: Get deployment URL
       run: |
@@ -148,6 +148,6 @@ jobs:
       uses: treosh/lighthouse-ci-action@v10
       with:
         urls: |
-          ${{ env.FRONTEND_URL }}
+          https://${{ secrets.FIREBASE_PROJECT_ID }}.web.app
         uploadArtifacts: true
         temporaryPublicStorage: true

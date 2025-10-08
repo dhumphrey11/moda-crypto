@@ -1,0 +1,109 @@
+name: Deploy Backend to Cloud Run
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ 'backend/**' ]
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  SERVICE_NAME: moda-crypto-backend
+  REGION: us-central1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Google Cloud CLI
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+    - name: Configure Docker to use gcloud as a credential helper
+      run: gcloud auth configure-docker
+
+    - name: Build Docker image
+      run: |
+        cd backend
+        docker build -t gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA .
+        docker build -t gcr.io/$PROJECT_ID/$SERVICE_NAME:latest .
+
+    - name: Push Docker image to GCR
+      run: |
+        docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
+        docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:latest
+
+    - name: Deploy to Cloud Run
+      run: |
+        gcloud run deploy $SERVICE_NAME \
+          --image gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA \
+          --platform managed \
+          --region $REGION \
+          --allow-unauthenticated \
+          --memory 1Gi \
+          --cpu 1 \
+          --timeout 300 \
+          --concurrency 100 \
+          --max-instances 10 \
+          --set-env-vars="ENVIRONMENT=production" \
+          --set-env-vars="FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}" \
+          --set-env-vars="FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}" \
+          --set-env-vars="FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}" \
+          --set-env-vars="FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}" \
+          --set-env-vars="COINGECKO_API_KEY=${{ secrets.COINGECKO_API_KEY }}" \
+          --set-env-vars="MORALIS_API_KEY=${{ secrets.MORALIS_API_KEY }}" \
+          --set-env-vars="COVALENT_API_KEY=${{ secrets.COVALENT_API_KEY }}" \
+          --set-env-vars="LUNARCRUSH_API_KEY=${{ secrets.LUNARCRUSH_API_KEY }}" \
+          --set-env-vars="COINMARKETCAL_API_KEY=${{ secrets.COINMARKETCAL_API_KEY }}" \
+          --set-env-vars="CRYPTOPANIC_API_KEY=${{ secrets.CRYPTOPANIC_API_KEY }}" \
+          --set-env-vars="COINBASE_API_KEY=${{ secrets.COINBASE_API_KEY }}" \
+          --set-env-vars="COINBASE_API_SECRET=${{ secrets.COINBASE_API_SECRET }}"
+
+    - name: Get deployment URL
+      run: |
+        SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --platform managed --region $REGION --format 'value(status.url)')
+        echo "Service deployed at: $SERVICE_URL"
+        echo "BACKEND_URL=$SERVICE_URL" >> $GITHUB_ENV
+
+    - name: Test deployment
+      run: |
+        # Wait for deployment to be ready
+        sleep 30
+        
+        # Test health endpoint
+        curl -f "$BACKEND_URL/health" || exit 1
+        echo "Health check passed"
+        
+        # Test root endpoint
+        curl -f "$BACKEND_URL/" || exit 1
+        echo "Root endpoint test passed"
+
+    - name: Update Cloud Scheduler jobs (optional)
+      run: |
+        # Update existing Cloud Scheduler jobs with new service URL
+        # This is optional and assumes you have Cloud Scheduler jobs set up
+        
+        # Example: Update fetch job
+        gcloud scheduler jobs update http fetch-coingecko \
+          --uri="$BACKEND_URL/fetch/coingecko" \
+          --location=$REGION || echo "No existing scheduler job to update"
+
+    - name: Notify deployment success
+      if: success()
+      run: |
+        echo "✅ Backend deployment successful!"
+        echo "🚀 Service URL: $BACKEND_URL"
+        echo "📊 Health check: $BACKEND_URL/health"
+        echo "📖 API docs: $BACKEND_URL/docs"
+
+    - name: Notify deployment failure
+      if: failure()
+      run: |
+        echo "❌ Backend deployment failed!"
+        echo "Check the logs above for error details."

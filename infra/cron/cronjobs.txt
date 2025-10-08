@@ -1,0 +1,117 @@
+# Moda Crypto - Cron Jobs Configuration
+# 
+# These are example cron job entries for automating the crypto signal system.
+# You can use these with Cloud Scheduler, cron on a server, or any job scheduler.
+#
+# Format: minute hour day month weekday command
+# All times are in UTC
+
+# =============================================================================
+# DATA FETCHING JOBS
+# =============================================================================
+
+# Fetch market data from CoinGecko every 30 minutes
+*/30 * * * * curl -X POST "https://your-backend-url.run.app/fetch/coingecko" -H "Content-Type: application/json"
+
+# Fetch on-chain data from Moralis every hour
+0 * * * * curl -X POST "https://your-backend-url.run.app/fetch/moralis" -H "Content-Type: application/json"
+
+# Fetch blockchain data from Covalent every 2 hours
+0 */2 * * * curl -X POST "https://your-backend-url.run.app/fetch/covalent" -H "Content-Type: application/json"
+
+# Fetch social sentiment from LunarCrush every 4 hours
+0 */4 * * * curl -X POST "https://your-backend-url.run.app/fetch/lunarcrush" -H "Content-Type: application/json"
+
+# Fetch events from CoinMarketCal twice daily
+0 8,20 * * * curl -X POST "https://your-backend-url.run.app/fetch/coinmarketcal" -H "Content-Type: application/json"
+
+# Fetch news from CryptoPanic every 3 hours
+0 */3 * * * curl -X POST "https://your-backend-url.run.app/fetch/cryptopanic" -H "Content-Type: application/json"
+
+# =============================================================================
+# SIGNAL COMPUTATION JOBS
+# =============================================================================
+
+# Compute signals every hour (after data fetching)
+15 * * * * curl -X POST "https://your-backend-url.run.app/compute/signals" -H "Content-Type: application/json"
+
+# =============================================================================
+# PAPER TRADING JOBS
+# =============================================================================
+
+# Execute paper trades every hour (after signal computation)
+30 * * * * curl -X POST "https://your-backend-url.run.app/paper-trade/execute" -H "Content-Type: application/json"
+
+# =============================================================================
+# MAINTENANCE AND ADMIN JOBS
+# =============================================================================
+
+# Retrain ML model weekly (Sunday at 2 AM UTC)
+0 2 * * 0 curl -X POST "https://your-backend-url.run.app/admin/retrain" -H "Content-Type: application/json"
+
+# Sync token list daily (6 AM UTC)
+0 6 * * * curl -X POST "https://your-backend-url.run.app/admin/tokens/sync" -H "Content-Type: application/json"
+
+# Health check every 15 minutes (for monitoring)
+*/15 * * * * curl -X GET "https://your-backend-url.run.app/health" -H "Content-Type: application/json"
+
+# =============================================================================
+# BATCH OPERATIONS (Optional)
+# =============================================================================
+
+# Fetch all data sources at once (alternative to individual fetches)
+# 0 */6 * * * curl -X POST "https://your-backend-url.run.app/fetch/all" -H "Content-Type: application/json"
+
+# =============================================================================
+# CLOUD SCHEDULER EXAMPLES (GCP)
+# =============================================================================
+
+# If using Google Cloud Scheduler, you can create jobs like this:
+#
+# gcloud scheduler jobs create http fetch-coingecko \
+#   --schedule="*/30 * * * *" \
+#   --uri="https://your-backend-url.run.app/fetch/coingecko" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json"
+#
+# gcloud scheduler jobs create http compute-signals \
+#   --schedule="15 * * * *" \
+#   --uri="https://your-backend-url.run.app/compute/signals" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json"
+#
+# gcloud scheduler jobs create http execute-trades \
+#   --schedule="30 * * * *" \
+#   --uri="https://your-backend-url.run.app/paper-trade/execute" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json"
+#
+# gcloud scheduler jobs create http retrain-model \
+#   --schedule="0 2 * * 0" \
+#   --uri="https://your-backend-url.run.app/admin/retrain" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json"
+
+# =============================================================================
+# NOTES
+# =============================================================================
+#
+# 1. Replace "https://your-backend-url.run.app" with your actual backend URL
+#
+# 2. For production, consider:
+#    - Adding authentication headers if your API requires them
+#    - Using retry logic for failed requests
+#    - Setting up alerting for failed cron jobs
+#    - Monitoring job execution times
+#
+# 3. Adjust timing based on API rate limits:
+#    - CoinGecko: 10-50 calls/minute (depending on plan)
+#    - Moralis: 25 requests/second
+#    - LunarCrush: Limited monthly requests
+#    - CoinMarketCal: 333 requests/day (free tier)
+#
+# 4. Consider time zones and market hours for optimal data fetching
+#
+# 5. Test all endpoints manually before setting up automated jobs
+#
+# 6. Monitor logs and system health regularly

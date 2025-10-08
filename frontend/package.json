@@ -1,0 +1,40 @@
+{
+  "name": "moda-crypto-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Moda Crypto Trading Platform Frontend",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "export": "next export",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^15.0.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-firebase-hooks": "^5.1.1",
+    "firebase": "^10.14.1",
+    "recharts": "^2.12.7",
+    "lucide-react": "^0.447.0",
+    "@types/node": "^22.8.4",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "tailwindcss": "^3.4.14",
+    "postcss": "^8.4.47",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^15.0.0",
+    "@tailwindcss/forms": "^0.5.9",
+    "@tailwindcss/typography": "^0.5.15"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}

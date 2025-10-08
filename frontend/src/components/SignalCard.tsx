@@ -1,13 +1,7 @@
 import { Signal } from '@/types';
 
-interface SignalCardProps {                        <div className="mt-2 text-sm text-gray-600">
-                            <div>Confidence: {(signal.confidence * 100).toFixed(1)}%</div>
-                            <div>Composite Score: {signal.composite_score.toFixed(3)}</div>
-                        </div>
-
-                        <div className="mt-2 text-xs text-gray-500">
-                            Generated: {formatTimestamp(signal.timestamp.toISOString())}
-                        </div>Signal;
+interface SignalCardProps {
+    signal: Signal;
     rank?: number;
     onClick?: () => void;
 }
@@ -66,18 +60,19 @@ const SignalCard = ({ signal, rank, onClick }: SignalCardProps) => {
                             </div>
                         </div>
 
-                        <div className="mt-2 text-sm text-gray-600">
-                            <div>Current Price: {formatPrice(signal.current_price)}</div>
-                            {signal.target_price && (
-                                <div>Target Price: {formatPrice(signal.target_price)}</div>
-                            )}
-                            {signal.stop_loss && (
-                                <div>Stop Loss: {formatPrice(signal.stop_loss)}</div>
-                            )}
+                                                <div className="mt-2 text-sm text-gray-600">
+                            <div>Confidence: {(signal.confidence * 100).toFixed(1)}%</div>
+                            <div>Composite Score: {signal.composite_score.toFixed(3)}</div>
                         </div>
 
-                        <div className="mt-3 text-xs text-gray-500">
-                            Generated: {formatTimestamp(signal.timestamp)}
+                        <div className="mt-2 text-sm text-gray-600">
+                            <div>ML Probability: {(signal.ml_prob * 100).toFixed(1)}%</div>
+                            <div>Rule Score: {signal.rule_score.toFixed(3)}</div>
+                            <div>Sentiment Score: {signal.sentiment_score.toFixed(3)}</div>
+                        </div>
+
+                        <div className="mt-2 text-xs text-gray-500">
+                            Generated: {formatTimestamp(signal.timestamp.toISOString())}
                         </div>
                     </div>
 
@@ -89,28 +84,34 @@ const SignalCard = ({ signal, rank, onClick }: SignalCardProps) => {
                     </div>
                 </div>
 
-                {/* Signal Details */}
-                {signal.features && Object.keys(signal.features).length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                        <div className="text-xs text-gray-500 mb-2">Key Indicators</div>
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                            {Object.entries(signal.features).slice(0, 4).map(([key, value]) => (
-                                <div key={key} className="flex justify-between">
-                                    <span className="text-gray-600 capitalize">{key.replace(/_/g, ' ')}</span>
-                                    <span className="font-medium">
-                                        {typeof value === 'number' ? value.toFixed(3) : String(value)}
-                                    </span>
-                                </div>
-                            ))}
+                {/* Weights Information */}
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="text-xs text-gray-500 mb-2">Model Weights</div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="flex justify-between">
+                            <span className="text-gray-600">ML Weight:</span>
+                            <span className="font-medium">{signal.weights_used.ml_weight.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-gray-600">Rule Weight:</span>
+                            <span className="font-medium">{signal.weights_used.rule_weight.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-gray-600">Sentiment Weight:</span>
+                            <span className="font-medium">{signal.weights_used.sentiment_weight.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-gray-600">Event Weight:</span>
+                            <span className="font-medium">{signal.weights_used.event_weight.toFixed(2)}</span>
                         </div>
                     </div>
-                )}
+                </div>
 
-                {/* Source Information */}
+                {/* Threshold Information */}
                 <div className="mt-3 pt-3 border-t border-gray-200">
                     <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>Model: {signal.model_version || 'v1.0'}</span>
-                        <span>Score: {signal.raw_score?.toFixed(3) || 'N/A'}</span>
+                        <span>Min Threshold: {signal.min_threshold.toFixed(3)}</span>
+                        <span>Event Score: {signal.event_score.toFixed(3)}</span>
                     </div>
                 </div>
             </div>

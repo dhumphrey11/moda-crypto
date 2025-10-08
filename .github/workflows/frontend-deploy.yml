@@ -54,6 +54,13 @@ jobs:
       run: |
         cd frontend
         npm run build
+        
+        # Verify static export was created
+        echo "Checking output directory..."
+        ls -la out/ || echo "Warning: out directory not found"
+        
+        # Show some files that should exist
+        ls -la out/index.html || echo "Warning: index.html not found in out directory"
 
     - name: Run tests (if any)
       run: |
@@ -100,9 +107,31 @@ jobs:
     - name: Deploy to Firebase Hosting
       run: |
         cd frontend
+        
+        # Check if required secrets exist
+        if [ -z "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" ]; then
+          echo "Error: FIREBASE_SERVICE_ACCOUNT secret not set"
+          exit 1
+        fi
+        
+        if [ -z "${{ secrets.FIREBASE_PROJECT_ID }}" ]; then
+          echo "Error: FIREBASE_PROJECT_ID secret not set"
+          exit 1
+        fi
+        
         echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" > firebase-service-account.json
         export GOOGLE_APPLICATION_CREDENTIALS="firebase-service-account.json"
         
+        # Initialize Firebase project
+        firebase use ${{ secrets.FIREBASE_PROJECT_ID }}
+        
+        # Verify the out directory exists
+        if [ ! -d "out" ]; then
+          echo "Error: out directory not found. Build may have failed."
+          exit 1
+        fi
+        
+        echo "Deploying to Firebase Hosting..."
         firebase deploy --only hosting --project ${{ secrets.FIREBASE_PROJECT_ID }}
 
     - name: Get deployment URL

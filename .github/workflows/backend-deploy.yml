@@ -61,12 +61,30 @@ jobs:
         docker push $REGION-docker.pkg.dev/$PROJECT_ID/$SERVICE_NAME/$SERVICE_NAME:$GITHUB_SHA
         docker push $REGION-docker.pkg.dev/$PROJECT_ID/$SERVICE_NAME/$SERVICE_NAME:latest
 
+    - name: Create environment variables file
+      run: |
+        # Create environment variables file for gcloud
+        cat << 'EOF' > env-vars.txt
+        ENVIRONMENT=production
+        FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
+        FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}
+        COINGECKO_API_KEY=${{ secrets.COINGECKO_API_KEY }}
+        MORALIS_API_KEY=${{ secrets.MORALIS_API_KEY }}
+        COVALENT_API_KEY=${{ secrets.COVALENT_API_KEY }}
+        LUNARCRUSH_API_KEY=${{ secrets.LUNARCRUSH_API_KEY }}
+        COINMARKETCAL_API_KEY=${{ secrets.COINMARKETCAL_API_KEY }}
+        CRYPTOPANIC_API_KEY=${{ secrets.CRYPTOPANIC_API_KEY }}
+        COINBASE_API_KEY=${{ secrets.COINBASE_API_KEY }}
+        COINBASE_API_SECRET=${{ secrets.COINBASE_API_SECRET }}
+        COINBASE_PASSPHRASE=${{ secrets.COINBASE_PASSPHRASE }}
+        FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}
+        EOF
+        
+        # Add Firebase private key to the file (handling special characters)
+        echo "FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}" >> env-vars.txt
+
     - name: Deploy to Cloud Run
       run: |
-        # Create a temporary JSON file for the private key
-        echo '${{ secrets.FIREBASE_PRIVATE_KEY }}' > /tmp/firebase_key.json
-        
-        # Deploy with environment variables, handling the private key separately
         gcloud run deploy $SERVICE_NAME \
           --image $REGION-docker.pkg.dev/$PROJECT_ID/$SERVICE_NAME/$SERVICE_NAME:$GITHUB_SHA \
           --platform managed \
@@ -77,28 +95,7 @@ jobs:
           --timeout 300 \
           --concurrency 100 \
           --max-instances 10 \
-          --set-env-vars ENVIRONMENT=production \
-          --set-env-vars FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}" \
-          --set-env-vars FIREBASE_CLIENT_EMAIL="${{ secrets.FIREBASE_CLIENT_EMAIL }}" \
-          --set-env-vars COINGECKO_API_KEY="${{ secrets.COINGECKO_API_KEY }}" \
-          --set-env-vars MORALIS_API_KEY="${{ secrets.MORALIS_API_KEY }}" \
-          --set-env-vars COVALENT_API_KEY="${{ secrets.COVALENT_API_KEY }}" \
-          --set-env-vars LUNARCRUSH_API_KEY="${{ secrets.LUNARCRUSH_API_KEY }}" \
-          --set-env-vars COINMARKETCAL_API_KEY="${{ secrets.COINMARKETCAL_API_KEY }}" \
-          --set-env-vars CRYPTOPANIC_API_KEY="${{ secrets.CRYPTOPANIC_API_KEY }}" \
-          --set-env-vars COINBASE_API_KEY="${{ secrets.COINBASE_API_KEY }}" \
-          --set-env-vars COINBASE_API_SECRET="${{ secrets.COINBASE_API_SECRET }}" \
-          --set-env-vars COINBASE_PASSPHRASE="${{ secrets.COINBASE_PASSPHRASE }}" \
-          --set-env-vars FIREBASE_STORAGE_BUCKET="${{ secrets.FIREBASE_STORAGE_BUCKET }}"
-        
-        # Set the Firebase private key as a separate step to avoid command line issues
-        gcloud run services update $SERVICE_NAME \
-          --region $REGION \
-          --update-env-vars FIREBASE_PRIVATE_KEY="$(cat /tmp/firebase_key.json)" || \
-          echo "Warning: Failed to set FIREBASE_PRIVATE_KEY, will mount as volume instead"
-        
-        # Clean up temporary file
-        rm -f /tmp/firebase_key.json
+          --env-vars-file env-vars.txt
 
     - name: Get deployment URL
       run: |

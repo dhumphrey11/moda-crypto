@@ -186,3 +186,83 @@ async def get_top_signals(limit: int = 10, min_score: float = 0.7):
     except Exception as e:
         logging.error(f"Failed to get top signals: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/signals")
+async def get_signals_paginated_endpoint(
+    page: int = 1,
+    limit: int = 20,
+    action: str | None = None,
+    min_confidence: float = 0.0,
+    range: str = "all",  # renamed from date_range to avoid keyword conflict
+    sort: str = "timestamp",
+    order: str = "desc"
+):
+    """Get paginated signals with filtering and sorting support."""
+    try:
+        from ..firestore_client import get_signals_paginated
+        
+        result = get_signals_paginated(
+            page=page,
+            limit=limit,
+            action=action,
+            min_confidence=min_confidence,
+            date_range=range,
+            sort_by=sort,
+            sort_order=order
+        )
+        
+        # Transform signals for frontend consumption
+        formatted_signals = []
+        for signal in result.get("signals", []):
+            formatted_signal = {
+                "id": signal.get("id"),
+                "timestamp": signal.get("timestamp", "").isoformat() if hasattr(signal.get("timestamp", ""), 'isoformat') else str(signal.get("timestamp", "")),
+                "token_id": signal.get("token_id"),
+                "action": signal.get("action"),
+                "confidence": signal.get("confidence", 0),
+                "composite_score": signal.get("composite_score", 0),
+                "price": signal.get("price", 0),
+                "volume_score": signal.get("volume_score", 0),
+                "momentum_score": signal.get("momentum_score", 0),
+                "trend_score": signal.get("trend_score", 0),
+                "sentiment_score": signal.get("sentiment_score", 0),
+                "technical_score": signal.get("technical_score", 0),
+                "market_cap": signal.get("market_cap", 0),
+                "prediction": signal.get("prediction"),
+                "features_used": signal.get("features_used", [])
+            }
+            formatted_signals.append(formatted_signal)
+        
+        return {
+            "status": "success",
+            "signals": formatted_signals,
+            "total": result.get("pagination", {}).get("total", 0),
+            "page": result.get("pagination", {}).get("page", 1),
+            "pages": result.get("pagination", {}).get("pages", 1),
+            "has_more": result.get("pagination", {}).get("has_more", False),
+            "has_prev": result.get("pagination", {}).get("has_prev", False),
+            "filters": result.get("filters_applied", {})
+        }
+        
+    except Exception as e:
+        logging.error(f"Failed to get paginated signals: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/signals/summary")
+async def get_signals_summary_endpoint(range: str = "24h"):
+    """Get signals summary statistics for the specified time range."""
+    try:
+        from ..firestore_client import get_signals_summary
+        
+        summary = get_signals_summary(date_range=range)
+        
+        return {
+            "status": "success",
+            "summary": summary
+        }
+        
+    except Exception as e:
+        logging.error(f"Failed to get signals summary: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

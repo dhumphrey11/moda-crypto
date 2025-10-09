@@ -15,6 +15,7 @@ const Layout = ({ children }: LayoutProps) => {
         { name: 'Dashboard', href: '/', icon: '📊' },
         { name: 'Signals', href: '/signals', icon: '📡' },
         { name: 'Portfolio', href: '/portfolio', icon: '💼' },
+        { name: 'Watchlist', href: '/watchlist', icon: '👀' },
         { name: 'Admin', href: '/admin', icon: '⚙️' },
     ];
 

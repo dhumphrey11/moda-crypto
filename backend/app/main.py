@@ -62,6 +62,22 @@ async def startup_event():
                     # Don't raise - let the app start anyway
                     pass
         
+        # Start background monitoring
+        try:
+            from .monitoring import start_background_monitoring
+            
+            monitoring_started = await start_background_monitoring()
+            
+            if monitoring_started:
+                logging.info("Background monitoring started successfully")
+            else:
+                logging.warning("Background monitoring was already running")
+                
+        except Exception as monitor_error:
+            logging.error(f"Failed to start background monitoring: {monitor_error}")
+            # Don't raise - allow the app to start even if monitoring fails
+            pass
+        
         logging.info("Application startup completed successfully")
     except Exception as e:
         logging.error(f"Startup error: {e}")
@@ -98,77 +114,69 @@ async def startup_check():
 
 @app.get("/health")
 async def health_check():
-    """
-    Health check endpoint that aggregates system status.
-    Returns status of recent runs and overall system health.
-    """
+    """Enhanced health check endpoint with comprehensive system analysis."""
     try:
-        # Try to get recent runs but don't fail if Firestore is not available
-        try:
-            from .firestore_client import get_recent_runs
-            recent_runs = get_recent_runs(hours=24)
-            firestore_available = True
-        except Exception as firestore_error:
-            logging.warning(f"Firestore not available for health check: {firestore_error}")
-            recent_runs = []
-            firestore_available = False
-
-        # Basic health check even if Firestore is down
-        if not firestore_available:
-            return {
-                "status": "basic",
-                "message": "API is running but Firestore unavailable",
-                "timestamp": datetime.utcnow().isoformat(),
-                "environment": settings.environment,
-                "firestore_available": False
-            }
-
-        # Analyze system health if Firestore is available
-        services = ['coingecko', 'moralis', 'covalent', 'lunarcrush',
-                    'coinmarketcal', 'cryptopanic', 'feature_engineer',
-                    'signal_compute', 'paper_trade']
-
-        service_status = {}
-        overall_healthy = True
-
-        for service in services:
-            service_runs = [r for r in recent_runs if r['service'] == service]
-            if service_runs:
-                latest_run = max(service_runs, key=lambda x: x['timestamp'])
-                service_status[service] = {
-                    'status': latest_run['status'],
-                    'last_run': latest_run['timestamp'].isoformat(),
-                    'count': latest_run['count'],
-                    'duration': latest_run.get('duration', 0)
-                }
-                if latest_run['status'] != 'success':
-                    overall_healthy = False
-            else:
-                service_status[service] = {
-                    'status': 'no_data',
-                    'last_run': None,
-                    'count': 0,
-                    'duration': 0
-                }
-
+        from .firestore_client import get_system_health
+        from .monitoring import get_monitoring_status
+        
+        # Get comprehensive system health
+        health_data = get_system_health()
+        
+        # Get monitoring scheduler status
+        monitoring_status = get_monitoring_status()
+        
         return {
-            "status": "healthy" if overall_healthy else "degraded",
+            "status": "healthy",
             "timestamp": datetime.utcnow().isoformat(),
-            "services": service_status,
-            "total_runs_24h": len(recent_runs),
-            "environment": settings.environment,
-            "firestore_available": True
+            "system": health_data,
+            "monitoring": monitoring_status
         }
-
+        
     except Exception as e:
         logging.error(f"Health check failed: {e}")
-        # Return basic health status even if full health check fails
         return {
-            "status": "basic",
-            "message": "API is running with limited health info",
-            "error": str(e) if settings.environment == "development" else "Health check error",
+            "status": "unhealthy",
             "timestamp": datetime.utcnow().isoformat(),
-            "environment": settings.environment
+            "error": str(e)
+        }
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Application shutdown event - cleanup monitoring."""
+    try:
+        from .monitoring import stop_background_monitoring
+        
+        # Stop background monitoring
+        await stop_background_monitoring()
+        logging.info("Background monitoring stopped")
+        
+        logging.info("Application shutdown completed")
+        
+    except Exception as e:
+        logging.error(f"Error during shutdown: {e}")
+
+
+@app.get("/monitoring/status")
+async def monitoring_status():
+    """Get current monitoring system status."""
+    try:
+        from .monitoring import get_monitoring_status
+        
+        status = get_monitoring_status()
+        
+        return {
+            "status": "success",
+            "monitoring": status,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logging.error(f"Error getting monitoring status: {e}")
+        return {
+            "status": "error", 
+            "message": str(e),
+            "timestamp": datetime.utcnow().isoformat()
         }
 
 

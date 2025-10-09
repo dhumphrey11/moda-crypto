@@ -106,6 +106,23 @@ class DataService {
         return response.trades.map(this.convertFirestoreTrade);
     }
 
+    async getRecentTrades(limit: number = 10): Promise<Trade[]> {
+        const endpoint = `/paper-trade/trades?limit=${limit}&sort=timestamp&order=desc`;
+        const response = await this.fetchFromBackend<{ trades: any[] }>(endpoint);
+        return response.trades.map(this.convertFirestoreTrade);
+    }
+
+    async getPortfolioHistory(timeRange: '24h' | '7d' | '30d' | '90d'): Promise<Array<{ date: string; value: number }>> {
+        try {
+            const endpoint = `/paper-trade/portfolio/history?range=${timeRange}`;
+            const response = await this.fetchFromBackend<{ history: Array<{ date: string; value: number }> }>(endpoint);
+            return response.history;
+        } catch (error) {
+            console.warn('Portfolio history not available:', error);
+            return [];
+        }
+    }
+
     // Start polling for portfolio updates
     startPortfolioPolling(callback: (portfolio: Portfolio) => void): string {
         const pollId = `portfolio_${Date.now()}`;

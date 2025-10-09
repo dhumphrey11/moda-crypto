@@ -252,7 +252,6 @@ backend/models/*.model
 # Service account keys (NEVER COMMIT THESE)
 *-service-account*.json
 firebase-adminsdk*.json
-cdp_api_key.json
 moda-crypto-sa-key.json
 
 # Docker

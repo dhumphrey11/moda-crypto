@@ -77,26 +77,7 @@ jobs:
         COINBASE_API_SECRET: ${{ secrets.COINBASE_API_SECRET }}
         FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
       run: |
-        # Create env file with all variables including FIREBASE_PRIVATE_KEY
-        cat > env-vars.txt << 'EOF'
-        ENVIRONMENT=$ENVIRONMENT
-        FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID
-        FIREBASE_CLIENT_EMAIL=$FIREBASE_CLIENT_EMAIL
-        FIREBASE_STORAGE_BUCKET=$FIREBASE_STORAGE_BUCKET
-        COINGECKO_API_KEY=$COINGECKO_API_KEY
-        MORALIS_API_KEY=$MORALIS_API_KEY
-        COVALENT_API_KEY=$COVALENT_API_KEY
-        LUNARCRUSH_API_KEY=$LUNARCRUSH_API_KEY
-        COINMARKETCAL_API_KEY=$COINMARKETCAL_API_KEY
-        CRYPTOPANIC_API_KEY=$CRYPTOPANIC_API_KEY
-        COINBASE_API_KEY=$COINBASE_API_KEY
-        COINBASE_API_SECRET=$COINBASE_API_SECRET
-        EOF
-        
-        # Add FIREBASE_PRIVATE_KEY separately to handle newlines properly
-        echo "FIREBASE_PRIVATE_KEY=$FIREBASE_PRIVATE_KEY" >> env-vars.txt
-        
-        # Deploy with all environment variables at once
+        # Deploy with environment variables using --set-env-vars instead of file
         gcloud run deploy $SERVICE_NAME \
           --image $REGION-docker.pkg.dev/$PROJECT_ID/$SERVICE_NAME/$SERVICE_NAME:$GITHUB_SHA \
           --platform managed \
@@ -108,10 +89,7 @@ jobs:
           --concurrency 100 \
           --max-instances 10 \
           --no-cpu-throttling \
-          --env-vars-file env-vars.txt
-        
-        # Clean up the env file
-        rm env-vars.txt
+          --set-env-vars "ENVIRONMENT=$ENVIRONMENT,FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID,FIREBASE_CLIENT_EMAIL=$FIREBASE_CLIENT_EMAIL,FIREBASE_STORAGE_BUCKET=$FIREBASE_STORAGE_BUCKET,COINGECKO_API_KEY=$COINGECKO_API_KEY,MORALIS_API_KEY=$MORALIS_API_KEY,COVALENT_API_KEY=$COVALENT_API_KEY,LUNARCRUSH_API_KEY=$LUNARCRUSH_API_KEY,COINMARKETCAL_API_KEY=$COINMARKETCAL_API_KEY,CRYPTOPANIC_API_KEY=$CRYPTOPANIC_API_KEY,COINBASE_API_KEY=$COINBASE_API_KEY,COINBASE_API_SECRET=$COINBASE_API_SECRET,FIREBASE_PRIVATE_KEY=$FIREBASE_PRIVATE_KEY"
 
     - name: Get deployment URL
       run: |

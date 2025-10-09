@@ -257,3 +257,4 @@ moda-crypto-sa-key.json
 
 # Docker
 .dockerignore.env.example
+backend/moda-crypto-firebase-adminsdk-fbsvc-582975df4c.json

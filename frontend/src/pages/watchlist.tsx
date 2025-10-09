@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NextPage } from 'next';
 import Head from 'next/head';
-import Layout from '../components/Layout';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { dataService } from '../lib/firestore';
 import { Token } from '../types';
@@ -67,7 +66,7 @@ const WatchlistPage: NextPage = () => {
 
     const addToWatchlist = async (token: Token | NewTokenForm) => {
         try {
-            await dataService.postToBackend('/admin/watchlist/add', token);
+            await dataService.postToBackend('/admin/watchlist', token);
             await loadWatchlistData();
             setShowAddForm(false);
             setNewToken({ symbol: '', name: '', coingecko_id: '' });
@@ -80,7 +79,7 @@ const WatchlistPage: NextPage = () => {
         if (!confirm('Are you sure you want to remove this token from the watchlist?')) return;
         
         try {
-            await dataService.postToBackend('/admin/watchlist/remove', { token_id: tokenId });
+            await dataService.deleteFromBackend(`/admin/watchlist/${tokenId}`);
             await loadWatchlistData();
         } catch (error) {
             alert(`Failed to remove token: ${error}`);
@@ -89,7 +88,7 @@ const WatchlistPage: NextPage = () => {
 
     const toggleTokenStatus = async (tokenId: string, active: boolean) => {
         try {
-            await dataService.postToBackend('/admin/watchlist/toggle', { token_id: tokenId, active });
+            await dataService.putToBackend(`/admin/watchlist/${tokenId}`, { active });
             await loadWatchlistData();
         } catch (error) {
             alert(`Failed to update token status: ${error}`);
@@ -98,7 +97,7 @@ const WatchlistPage: NextPage = () => {
 
     const updateToken = async (tokenId: string, updates: Partial<Token>) => {
         try {
-            await dataService.postToBackend('/admin/watchlist/update', { token_id: tokenId, ...updates });
+            await dataService.putToBackend(`/admin/watchlist/${tokenId}`, updates);
             await loadWatchlistData();
             setEditingToken(null);
         } catch (error) {
@@ -127,16 +126,14 @@ const WatchlistPage: NextPage = () => {
 
     if (data.loading) {
         return (
-            <Layout>
-                <div className="flex justify-center items-center h-64">
-                    <LoadingSpinner />
-                </div>
-            </Layout>
+            <div className="flex justify-center items-center h-64">
+                <LoadingSpinner />
+            </div>
         );
     }
 
     return (
-        <Layout>
+        <>
             <Head>
                 <title>Watchlist - Moda Crypto</title>
                 <meta name="description" content="Cryptocurrency watchlist management" />
@@ -431,7 +428,7 @@ const WatchlistPage: NextPage = () => {
                     </div>
                 </div>
             </div>
-        </Layout>
+        </>
     );
 };
 

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { NextPage } from 'next';
 import Head from 'next/head';
-import Layout from '../components/Layout';
 import LoadingSpinner from '../components/LoadingSpinner';
+import SignalCard from '../components/SignalCard';
 import { dataService } from '../lib/firestore';
 import { Signal } from '../types';
 
@@ -159,16 +159,14 @@ const SignalsPage: NextPage = () => {
 
     if (data.loading && data.signals.length === 0) {
         return (
-            <Layout>
-                <div className="flex justify-center items-center h-64">
-                    <LoadingSpinner />
-                </div>
-            </Layout>
+            <div className="flex justify-center items-center h-64">
+                <LoadingSpinner />
+            </div>
         );
     }
 
     return (
-        <Layout>
+        <>
             <Head>
                 <title>Signals - Moda Crypto</title>
                 <meta name="description" content="AI Trading Signals History" />
@@ -391,7 +389,7 @@ const SignalsPage: NextPage = () => {
                     </div>
                 </div>
             </div>
-        </Layout>
+        </>
     );
 };
 

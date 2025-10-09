@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NextPage } from 'next';
 import Head from 'next/head';
-import Layout from '../components/Layout';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { dataService } from '../lib/firestore';
 import { SystemHealth, ModelInfo } from '../types';
@@ -149,16 +148,14 @@ const AdminPage: NextPage = () => {
 
     if (data.loading) {
         return (
-            <Layout>
-                <div className="flex justify-center items-center h-64">
-                    <LoadingSpinner />
-                </div>
-            </Layout>
+            <div className="flex justify-center items-center h-64">
+                <LoadingSpinner />
+            </div>
         );
     }
 
     return (
-        <Layout>
+        <>
             <Head>
                 <title>Admin - Moda Crypto</title>
                 <meta name="description" content="System administration and monitoring" />
@@ -638,7 +635,7 @@ const AdminPage: NextPage = () => {
                     </div>
                 )}
             </div>
-        </Layout>
+        </>
     );
 };
 

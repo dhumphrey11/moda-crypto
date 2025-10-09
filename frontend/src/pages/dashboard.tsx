@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NextPage } from 'next';
 import Head from 'next/head';
-import Layout from '../components/Layout';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { dataService } from '../lib/firestore';
 import { Portfolio, Trade, Signal } from '../types';
@@ -73,11 +72,9 @@ const Dashboard: NextPage = () => {
 
     if (data.loading) {
         return (
-            <Layout>
-                <div className="flex justify-center items-center h-64">
-                    <LoadingSpinner />
-                </div>
-            </Layout>
+            <div className="flex justify-center items-center h-64">
+                <LoadingSpinner />
+            </div>
         );
     }
 
@@ -87,7 +84,7 @@ const Dashboard: NextPage = () => {
     const positions = data.portfolio?.positions || [];
 
     return (
-        <Layout>
+        <>
             <Head>
                 <title>Dashboard - Moda Crypto</title>
                 <meta name="description" content="Moda Crypto trading dashboard" />
@@ -285,7 +282,7 @@ const Dashboard: NextPage = () => {
                     </div>
                 </div>
             </div>
-        </Layout>
+        </>
     );
 };
 

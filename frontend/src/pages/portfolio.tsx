@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { NextPage } from 'next';
 import Head from 'next/head';
-import Layout from '../components/Layout';
 import LoadingSpinner from '../components/LoadingSpinner';
+import PortfolioTable from '../components/PortfolioTable';
 import { dataService } from '../lib/firestore';
 import { Portfolio, PortfolioPosition, Trade } from '../types';
 
@@ -111,11 +111,9 @@ const PortfolioPage: NextPage = () => {
 
     if (data.loading) {
         return (
-            <Layout>
-                <div className="flex justify-center items-center h-64">
-                    <LoadingSpinner />
-                </div>
-            </Layout>
+            <div className="flex justify-center items-center h-64">
+                <LoadingSpinner />
+            </div>
         );
     }
 
@@ -123,7 +121,7 @@ const PortfolioPage: NextPage = () => {
     const positions = portfolio?.positions || [];
 
     return (
-        <Layout>
+        <>
             <Head>
                 <title>Portfolio - Moda Crypto</title>
                 <meta name="description" content="Portfolio analytics and performance tracking" />
@@ -506,7 +504,7 @@ const PortfolioPage: NextPage = () => {
                     </div>
                 )}
             </div>
-        </Layout>
+        </>
     );
 };
 

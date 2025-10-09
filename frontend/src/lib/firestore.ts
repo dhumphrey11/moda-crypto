@@ -46,6 +46,35 @@ class DataService {
         return response.json();
     }
 
+    async putToBackend<T>(endpoint: string, data?: any): Promise<T> {
+        const response = await fetch(`${BACKEND_URL}${endpoint}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: data ? JSON.stringify(data) : undefined,
+        });
+
+        if (!response.ok) {
+            throw new Error(`Backend API error: ${response.statusText}`);
+        }
+        return response.json();
+    }
+
+    async deleteFromBackend<T>(endpoint: string): Promise<T> {
+        const response = await fetch(`${BACKEND_URL}${endpoint}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Backend API error: ${response.statusText}`);
+        }
+        return response.json();
+    }
+
     // ==========================================
     // SYSTEM HEALTH
     // ==========================================

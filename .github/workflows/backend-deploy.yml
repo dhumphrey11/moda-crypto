@@ -63,25 +63,24 @@ jobs:
 
     - name: Create environment variables file
       run: |
-        # Create environment variables file for gcloud
-        cat << 'EOF' > env-vars.txt
-        ENVIRONMENT=production
-        FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
-        FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}
-        COINGECKO_API_KEY=${{ secrets.COINGECKO_API_KEY }}
-        MORALIS_API_KEY=${{ secrets.MORALIS_API_KEY }}
-        COVALENT_API_KEY=${{ secrets.COVALENT_API_KEY }}
-        LUNARCRUSH_API_KEY=${{ secrets.LUNARCRUSH_API_KEY }}
-        COINMARKETCAL_API_KEY=${{ secrets.COINMARKETCAL_API_KEY }}
-        CRYPTOPANIC_API_KEY=${{ secrets.CRYPTOPANIC_API_KEY }}
-        COINBASE_API_KEY=${{ secrets.COINBASE_API_KEY }}
-        COINBASE_API_SECRET=${{ secrets.COINBASE_API_SECRET }}
-        COINBASE_PASSPHRASE=${{ secrets.COINBASE_PASSPHRASE }}
-        FIREBASE_STORAGE_BUCKET=${{ secrets.FIREBASE_STORAGE_BUCKET }}
+        # Create environment variables file for gcloud in YAML format
+        cat << EOF > env-vars.yaml
+        ENVIRONMENT: production
+        FIREBASE_PROJECT_ID: "${{ secrets.FIREBASE_PROJECT_ID }}"
+        FIREBASE_CLIENT_EMAIL: "${{ secrets.FIREBASE_CLIENT_EMAIL }}"
+        COINGECKO_API_KEY: "${{ secrets.COINGECKO_API_KEY }}"
+        MORALIS_API_KEY: "${{ secrets.MORALIS_API_KEY }}"
+        COVALENT_API_KEY: "${{ secrets.COVALENT_API_KEY }}"
+        LUNARCRUSH_API_KEY: "${{ secrets.LUNARCRUSH_API_KEY }}"
+        COINMARKETCAL_API_KEY: "${{ secrets.COINMARKETCAL_API_KEY }}"
+        CRYPTOPANIC_API_KEY: "${{ secrets.CRYPTOPANIC_API_KEY }}"
+        COINBASE_API_KEY: "${{ secrets.COINBASE_API_KEY }}"
+        COINBASE_API_SECRET: "${{ secrets.COINBASE_API_SECRET }}"
+        COINBASE_PASSPHRASE: "${{ secrets.COINBASE_PASSPHRASE }}"
+        FIREBASE_STORAGE_BUCKET: "${{ secrets.FIREBASE_STORAGE_BUCKET }}"
+        FIREBASE_PRIVATE_KEY: |
+          ${{ secrets.FIREBASE_PRIVATE_KEY }}
         EOF
-        
-        # Add Firebase private key to the file (handling special characters)
-        echo "FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}" >> env-vars.txt
 
     - name: Deploy to Cloud Run
       run: |
@@ -95,7 +94,7 @@ jobs:
           --timeout 300 \
           --concurrency 100 \
           --max-instances 10 \
-          --env-vars-file env-vars.txt
+          --env-vars-file env-vars.yaml
 
     - name: Get deployment URL
       run: |

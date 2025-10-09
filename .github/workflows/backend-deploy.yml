@@ -77,7 +77,26 @@ jobs:
         COINBASE_API_SECRET: ${{ secrets.COINBASE_API_SECRET }}
         FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
       run: |
-        # Deploy without FIREBASE_PRIVATE_KEY first
+        # Create env file with all variables including FIREBASE_PRIVATE_KEY
+        cat > env-vars.txt << 'EOF'
+        ENVIRONMENT=$ENVIRONMENT
+        FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID
+        FIREBASE_CLIENT_EMAIL=$FIREBASE_CLIENT_EMAIL
+        FIREBASE_STORAGE_BUCKET=$FIREBASE_STORAGE_BUCKET
+        COINGECKO_API_KEY=$COINGECKO_API_KEY
+        MORALIS_API_KEY=$MORALIS_API_KEY
+        COVALENT_API_KEY=$COVALENT_API_KEY
+        LUNARCRUSH_API_KEY=$LUNARCRUSH_API_KEY
+        COINMARKETCAL_API_KEY=$COINMARKETCAL_API_KEY
+        CRYPTOPANIC_API_KEY=$CRYPTOPANIC_API_KEY
+        COINBASE_API_KEY=$COINBASE_API_KEY
+        COINBASE_API_SECRET=$COINBASE_API_SECRET
+        EOF
+        
+        # Add FIREBASE_PRIVATE_KEY separately to handle newlines properly
+        echo "FIREBASE_PRIVATE_KEY=$FIREBASE_PRIVATE_KEY" >> env-vars.txt
+        
+        # Deploy with all environment variables at once
         gcloud run deploy $SERVICE_NAME \
           --image $REGION-docker.pkg.dev/$PROJECT_ID/$SERVICE_NAME/$SERVICE_NAME:$GITHUB_SHA \
           --platform managed \
@@ -88,24 +107,11 @@ jobs:
           --timeout 300 \
           --concurrency 100 \
           --max-instances 10 \
-          --set-env-vars ENVIRONMENT="$ENVIRONMENT" \
-          --set-env-vars FIREBASE_PROJECT_ID="$FIREBASE_PROJECT_ID" \
-          --set-env-vars FIREBASE_CLIENT_EMAIL="$FIREBASE_CLIENT_EMAIL" \
-          --set-env-vars COINGECKO_API_KEY="$COINGECKO_API_KEY" \
-          --set-env-vars MORALIS_API_KEY="$MORALIS_API_KEY" \
-          --set-env-vars COVALENT_API_KEY="$COVALENT_API_KEY" \
-          --set-env-vars LUNARCRUSH_API_KEY="$LUNARCRUSH_API_KEY" \
-          --set-env-vars COINMARKETCAL_API_KEY="$COINMARKETCAL_API_KEY" \
-          --set-env-vars CRYPTOPANIC_API_KEY="$CRYPTOPANIC_API_KEY" \
-          --set-env-vars COINBASE_API_KEY="$COINBASE_API_KEY" \
-          --set-env-vars COINBASE_API_SECRET="$COINBASE_API_SECRET" \
-          --set-env-vars FIREBASE_STORAGE_BUCKET="$FIREBASE_STORAGE_BUCKET"
+          --no-cpu-throttling \
+          --env-vars-file env-vars.txt
         
-        # Add FIREBASE_PRIVATE_KEY in a separate command to avoid parsing issues
-        echo "Setting FIREBASE_PRIVATE_KEY..."
-        gcloud run services update $SERVICE_NAME \
-          --region $REGION \
-          --update-env-vars FIREBASE_PRIVATE_KEY="$FIREBASE_PRIVATE_KEY"
+        # Clean up the env file
+        rm env-vars.txt
 
     - name: Get deployment URL
       run: |

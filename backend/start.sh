@@ -1,5 +1,7 @@
 #!/bin/bash
-# Startup script for Cloud Run
+# Startup         echo "WARNING: Startup validation failed with exit code $result"
+        echo "Continuing with startup - will retry Firebase initialization on first request..."
+        # Always continue in production to allow Cloud Run health checksfor Cloud Run
 # Uses PORT environment variable provided by Cloud Run, defaults to 8080 for local development
 
 PORT=${PORT:-8080}

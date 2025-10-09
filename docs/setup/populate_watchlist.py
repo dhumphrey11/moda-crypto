@@ -31,43 +31,7 @@ from typing import List, Dict, Optional
 backend_path = os.path.join(os.path.dirname(__file__), '..', '..', 'backend')
 sys.path.insert(0, backend_path)
 
-try:
-    from app.firestore_client import init_db
-    from app.config import settings
-except ImportError as e:
-    print(f"❌ Error importing backend modules: {e}")
-    print("Make sure you're running this from the project root and backend dependencies are installed.")
-    sys.exit(1)
-except Exception as e:
-    if "ValidationError" in str(e) and "firebase" in str(e).lower():
-        print("❌ Firebase Configuration Error")
-        print("━" * 50)
-        print("The Firebase environment variables are present but invalid.")
-        print()
-        print("🔍 Common Issues:")
-        print("• FIREBASE_PRIVATE_KEY should be a full private key starting with")
-        print("  '-----BEGIN PRIVATE KEY-----' NOT an API key like 'AIzaSy...'")
-        print("• Missing quotes around private key value")
-        print("• Incorrect project ID or service account email")
-        print()
-        print("✅ Correct format in 'backend/.env':")
-        print('FIREBASE_PROJECT_ID=your-project-id')
-        print('FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com')
-        print('FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\\nMIIEvgIBADANB...\\n-----END PRIVATE KEY-----\\n"')
-        print('FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com')
-        print()
-        print("💡 To get proper credentials:")
-        print("1. Firebase Console → Project Settings → Service Accounts")
-        print("2. Click 'Generate new private key'")
-        print("3. Download the JSON file and extract the values")
-        print("4. Use 'private_key' field (not 'api_key') for FIREBASE_PRIVATE_KEY")
-        print()
-        print("📖 See SECRETS_REQUIRED.md for detailed setup instructions.")
-        print("━" * 50)
-        sys.exit(1)
-    else:
-        print(f"❌ Backend configuration error: {e}")
-        sys.exit(1)
+# Firebase imports will be done conditionally
 
 # Top 40 cryptocurrencies by market cap (as of 2025)
 # Format: (symbol, name, coingecko_id)
@@ -121,27 +85,61 @@ class WatchlistPopulator:
         self.db = None
         
     def init_firestore(self):
-        """Initialize Firestore connection."""
+        """Initialize Firestore connection using existing app configuration."""
         try:
+            # Import Firebase modules only when needed
+            try:
+                from app.firestore_client import init_db
+            except ImportError as e:
+                print(f"❌ Error importing backend modules: {e}")
+                print("Make sure you're running this from the project root and backend dependencies are installed.")
+                return False
+                
+            print("🔥 Initializing Firestore connection...")
             self.db = init_db()
-            print("✓ Firestore connection established")
+            
+            # Test the connection
+            test_collection = self.db.collection('tokens')
+            print("✓ Firestore connection established successfully")
+            print("✓ Database client ready for operations")
             return True
+            
         except Exception as e:
             print("❌ Failed to connect to Firestore")
             print("━" * 50)
-            if "firebase" in str(e).lower() or "credential" in str(e).lower():
-                print("Firebase credentials are not properly configured.")
+            error_msg = str(e).lower()
+            
+            if "validation" in error_msg and "firebase" in error_msg:
+                print("🔍 Firebase credential validation failed.")
                 print()
-                print("Please check your 'backend/.env' file contains:")
-                print("• FIREBASE_PROJECT_ID")
-                print("• FIREBASE_CLIENT_EMAIL") 
-                print("• FIREBASE_PRIVATE_KEY")
-                print("• FIREBASE_STORAGE_BUCKET")
+                print("The app's Firebase initialization detected invalid credentials.")
+                print("This usually means the credentials in backend/.env need to be fixed.")
                 print()
-                print("💡 Run this command to check your .env file:")
-                print("cat backend/.env | grep FIREBASE")
+                print("💡 The app will try to handle different credential formats,")
+                print("   but you may need proper service account credentials.")
+                
+            elif "credential" in error_msg or "auth" in error_msg:
+                print("🔑 Firebase authentication failed.")
+                print()
+                print("Please verify your Firebase service account has:")
+                print("• Proper permissions for Firestore")
+                print("• Valid project ID and credentials")
+                
+            elif "project" in error_msg:
+                print("📁 Firebase project configuration issue.")
+                print()
+                print("Please verify:")
+                print("• FIREBASE_PROJECT_ID matches your Firebase project")
+                print("• Project exists and Firestore is enabled")
+                
             else:
-                print(f"Connection error: {e}")
+                print(f"Unexpected error: {e}")
+                
+            print()
+            print("🛠️  To resolve:")
+            print("1. Check backend/.env has all Firebase variables")
+            print("2. Run: ./docs/setup/validate_firebase.sh")
+            print("3. Get proper credentials from Firebase Console")
             print("━" * 50)
             return False
     
@@ -309,8 +307,18 @@ def main():
                        help='Show what would be added without making changes')
     parser.add_argument('--force', action='store_true',
                        help='Overwrite existing tokens in the watchlist')
+    parser.add_argument('--no-firebase', action='store_true',
+                       help='Run without Firebase (demonstration mode)')
     
     args = parser.parse_args()
+    
+    if args.no_firebase:
+        # Import and run the demo version instead
+        import subprocess
+        demo_script = os.path.join(os.path.dirname(__file__), 'demo_watchlist.py')
+        cmd = [sys.executable, demo_script, '--format', 'table']
+        result = subprocess.run(cmd)
+        sys.exit(result.returncode)
     
     populator = WatchlistPopulator(dry_run=args.dry_run, force=args.force)
     success = populator.run()

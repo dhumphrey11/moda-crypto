@@ -157,11 +157,13 @@ show_usage() {
     echo "Options:"
     echo "  --dry-run         Preview changes without making them"
     echo "  --force          Overwrite existing tokens"
+    echo "  --no-firebase    Run demo mode without Firebase connection"
     echo "  --install-deps   Install backend dependencies first"
     echo "  --help, -h       Show this help message"
     echo ""
     echo "Examples:"
     echo "  $0 --dry-run                    # Preview what would be added"
+    echo "  $0 --no-firebase               # Demo mode with live data"
     echo "  $0                             # Add tokens to watchlist"
     echo "  $0 --force                     # Overwrite existing tokens"
     echo "  $0 --install-deps --dry-run    # Install deps and preview"
@@ -188,6 +190,11 @@ main() {
                 python_args+=("--force")
                 shift
                 ;;
+            --no-firebase)
+                python_args+=("--no-firebase")
+                print_status "No-Firebase mode: Will run demo without connecting to Firestore"
+                shift
+                ;;
             --install-deps)
                 install_deps=true
                 shift
@@ -209,8 +216,12 @@ main() {
     echo "=============================="
     echo ""
     
-    # Check prerequisites
-    check_prerequisites
+    # Check prerequisites (skip Firebase validation for no-firebase mode)
+    if [[ "${python_args[*]}" != *"--no-firebase"* ]]; then
+        check_prerequisites
+    else
+        print_status "Skipping Firebase validation for demo mode"
+    fi
     
     # Install dependencies if requested
     if [[ "$install_deps" == true ]]; then

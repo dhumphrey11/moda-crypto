@@ -99,7 +99,6 @@ jobs:
           --set-env-vars CRYPTOPANIC_API_KEY="$CRYPTOPANIC_API_KEY" \
           --set-env-vars COINBASE_API_KEY="$COINBASE_API_KEY" \
           --set-env-vars COINBASE_API_SECRET="$COINBASE_API_SECRET" \
-          --set-env-vars COINBASE_PASSPHRASE="$COINBASE_PASSPHRASE" \
           --set-env-vars FIREBASE_STORAGE_BUCKET="$FIREBASE_STORAGE_BUCKET"
         
         # Add FIREBASE_PRIVATE_KEY in a separate command to avoid parsing issues

@@ -13,17 +13,40 @@ def initialize_firebase():
     """Initialize Firebase Admin SDK with service account credentials."""
     if not firebase_admin._apps:
         try:
+            logging.info("Initializing Firebase Admin SDK...")
+            
+            # Validate required settings
+            if not settings.firebase_project_id:
+                raise ValueError("FIREBASE_PROJECT_ID is required")
+            if not settings.firebase_client_email:
+                raise ValueError("FIREBASE_CLIENT_EMAIL is required") 
+            if not settings.firebase_private_key:
+                raise ValueError("FIREBASE_PRIVATE_KEY is required")
+                
             # Try to use service account file if provided
             if settings.google_application_credentials:
+                logging.info("Using service account file for Firebase initialization")
                 cred = credentials.Certificate(
                     settings.google_application_credentials)
             else:
-                # Use environment variables
+                logging.info("Using environment variables for Firebase initialization")
+                # Use environment variables - ensure private key format is correct
+                private_key = settings.firebase_private_key
+                if private_key and not private_key.startswith('-----BEGIN'):
+                    # Handle base64 encoded or escaped private key
+                    private_key = private_key.replace('\\n', '\n')
+                    if not private_key.startswith('-----BEGIN'):
+                        import base64
+                        try:
+                            private_key = base64.b64decode(private_key).decode('utf-8')
+                        except:
+                            pass  # Use as-is if decode fails
+                
                 cred_dict = {
                     "type": "service_account",
                     "project_id": settings.firebase_project_id,
                     "client_email": settings.firebase_client_email,
-                    "private_key": settings.firebase_private_key,
+                    "private_key": private_key,
                     "private_key_id": "1",
                     "client_id": "1",
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
@@ -58,7 +81,12 @@ def init_db():
     """Initialize global database client."""
     global db
     if db is None:
-        db = get_firestore_client()
+        try:
+            db = get_firestore_client()
+            logging.info("Firestore client initialized successfully")
+        except Exception as e:
+            logging.error(f"Failed to initialize Firestore client: {e}")
+            raise
     return db
 
 # Helper functions for common Firestore operations

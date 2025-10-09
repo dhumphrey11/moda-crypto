@@ -18,7 +18,7 @@ logging.basicConfig(
 app = FastAPI(
     title="Moda Crypto API",
     description="Personal crypto signal & paper trading system",
-    version="1.0.0",
+    version="1.0.1",
     docs_url="/docs",
     redoc_url="/redoc"
 )

@@ -75,7 +75,6 @@ jobs:
         CRYPTOPANIC_API_KEY: ${{ secrets.CRYPTOPANIC_API_KEY }}
         COINBASE_API_KEY: ${{ secrets.COINBASE_API_KEY }}
         COINBASE_API_SECRET: ${{ secrets.COINBASE_API_SECRET }}
-        COINBASE_PASSPHRASE: ${{ secrets.COINBASE_PASSPHRASE }}
         FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
       run: |
         # Deploy without FIREBASE_PRIVATE_KEY first

@@ -4,7 +4,7 @@ import logging
 import time
 
 from ..paper_trade.executor import execute_paper_trades
-from ..firestore_client import write_run, get_recent_signals, get_open_trades, get_portfolio
+from ..firestore_client import write_run, get_open_trades, get_portfolio
 
 router = APIRouter()
 
@@ -102,7 +102,7 @@ async def get_current_portfolio():
 
 
 @router.get("/trades")
-async def get_trades(status: str = None, limit: int = 50):
+async def get_trades(status: str | None = None, limit: int = 50):
     """Get trade history with optional status filter."""
     try:
         if status:

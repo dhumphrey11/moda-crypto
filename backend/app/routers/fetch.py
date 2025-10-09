@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks
-from datetime import datetime
 import logging
 import asyncio
 import time
@@ -226,7 +225,7 @@ async def fetch_all_data(background_tasks: BackgroundTasks):
                 errors.append(f"{source}: {str(result)}")
                 background_tasks.add_task(write_run, source, 0, "error", 0)
             else:
-                count = len(result) if result else 0
+                count = len(result) if result and isinstance(result, list) else 0
                 total_count += count
                 successful_sources += 1
                 background_tasks.add_task(

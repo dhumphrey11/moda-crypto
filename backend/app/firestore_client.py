@@ -1,9 +1,8 @@
 import firebase_admin
-from firebase_admin import credentials, firestore, storage
-from google.cloud import firestore as firestore_client
+from firebase_admin import credentials, firestore
+from google.cloud import firestore as gcp_firestore
 from datetime import datetime
-from typing import Dict, List, Any, Optional
-import json
+from typing import Dict, List, Any
 import logging
 from .config import settings
 
@@ -147,7 +146,8 @@ def get_admin_config() -> Dict[str, Any]:
         db = init_db()
         doc = db.collection('adminConfig').document('default').get()
         if doc.exists:
-            return doc.to_dict()
+            data = doc.to_dict()
+            return data if data is not None else {}
         else:
             # Return default config if not found
             default_config = {
@@ -214,7 +214,7 @@ def get_recent_signals(hours: int = 24) -> List[Dict[str, Any]]:
         signals = []
         docs = db.collection('signals')\
             .where('timestamp', '>=', cutoff_time)\
-            .order_by('timestamp', direction=firestore.Query.DESCENDING)\
+            .order_by('timestamp', direction=gcp_firestore.Query.DESCENDING)\
             .stream()
 
         for doc in docs:
@@ -258,7 +258,7 @@ def get_recent_runs(hours: int = 24) -> List[Dict[str, Any]]:
         runs = []
         docs = db.collection('runs')\
                  .where('timestamp', '>=', cutoff_time)\
-                 .order_by('timestamp', direction=firestore.Query.DESCENDING)\
+                 .order_by('timestamp', direction=gcp_firestore.Query.DESCENDING)\
                  .stream()
 
         for doc in docs:

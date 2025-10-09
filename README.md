@@ -18,12 +18,25 @@ moda-crypto/
 │   ├── pages/        # App pages
 │   ├── components/   # React components
 │   └── lib/          # Utilities & Firebase
+├── docs/             # Documentation & Setup Scripts
+│   ├── setup/        # Automated setup scripts
+│   └── guides/       # Development & deployment guides
 └── infra/            # Infrastructure & CI/CD
     ├── github-actions/
     └── cron/
 ```
 
-## 🚀 Quick Start
+## � Documentation
+
+Comprehensive setup and development guides are located in the [`docs/`](docs/) folder:
+
+- **Setup Scripts**: [`docs/setup/`](docs/setup/) - Automated setup for all platforms
+- **Development Guide**: [`docs/guides/DEVELOPMENT.md`](docs/guides/DEVELOPMENT.md) - Detailed development workflow  
+- **Deployment Guide**: [`docs/guides/FIREBASE_PRODUCTION_GUIDE.md`](docs/guides/FIREBASE_PRODUCTION_GUIDE.md) - Production deployment
+- **API Keys Guide**: [`docs/setup/api-keys-guide.sh`](docs/setup/api-keys-guide.sh) - Interactive API setup
+- **Secrets Guide**: [`docs/guides/SECRETS_REQUIRED.md`](docs/guides/SECRETS_REQUIRED.md) - Required environment variables
+
+## �🚀 Quick Start
 
 ### Prerequisites
 
@@ -34,12 +47,23 @@ moda-crypto/
 
 ### Local Development Setup
 
-1. **Clone and setup environment:**
+1. **Automated setup (recommended):**
    ```bash
    git clone <your-repo>
    cd moda-crypto
+   
+   # For macOS/Linux:
+   python docs/setup/setup.py
+   
+   # For Windows:
+   powershell -ExecutionPolicy Bypass -File docs/setup/setup.ps1
+   ```
+
+2. **Manual setup:**
+   ```bash
    cp .env.example .env
    # Edit .env with your actual API keys and Firebase credentials
+   # Use docs/setup/api-keys-guide.sh for interactive API key setup
    ```
 
 2. **Backend setup:**
@@ -109,7 +133,7 @@ npm run lint         # Lint code
 
 The system requires periodic execution of data fetching and signal generation:
 
-1. **Setup Cloud Scheduler (recommended)** or use the provided cron examples in `infra/cron/cronjobs.txt`
+1. **Setup Cloud Scheduler (recommended)** or use the provided cron examples in [`infra/cron/cronjobs.txt`](infra/cron/cronjobs.txt)
 
 2. **Key endpoints to schedule:**
    - Data fetching: Every 30 minutes
@@ -182,7 +206,15 @@ The system includes built-in health monitoring:
 4. **Signal Generation**: Combines ML with rule-based and sentiment scoring
 5. **Paper Trading**: Executes trades based on composite scores ≥ 0.85
 
-## 📝 Development Notes
+## � Additional Documentation
+
+- **[Complete Documentation Index](docs/README.md)** - Overview of all documentation
+- **[Development Workflow](docs/guides/DEVELOPMENT.md)** - Detailed development setup and workflow  
+- **[Production Deployment](docs/guides/FIREBASE_PRODUCTION_GUIDE.md)** - Complete deployment guide
+- **[Refactoring History](docs/guides/REFACTORING_SUMMARY.md)** - Project evolution and changes
+- **[Setup Scripts](docs/setup/)** - Automated setup for all platforms
+
+## �📝 Development Notes
 
 ### TODO: Production Improvements
 

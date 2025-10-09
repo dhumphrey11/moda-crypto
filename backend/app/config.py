@@ -1,6 +1,5 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
-import os
 
 
 class Settings(BaseSettings):
@@ -27,7 +26,7 @@ class Settings(BaseSettings):
     environment: str = "development"
 
     # ML Model Settings
-    model_retrain_days: int = 7
+    ml_retrain_days: int = 7
     min_composite_score: float = 0.85
     max_position_size: float = 0.10
     max_token_allocation: float = 0.15
@@ -39,9 +38,11 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    model_config = {
+        'env_file': '.env',
+        'case_sensitive': False,
+        'protected_namespaces': ('settings_',)
+    }
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

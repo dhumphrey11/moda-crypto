@@ -35,9 +35,39 @@ try:
     from app.firestore_client import init_db
     from app.config import settings
 except ImportError as e:
-    print(f"Error importing backend modules: {e}")
+    print(f"❌ Error importing backend modules: {e}")
     print("Make sure you're running this from the project root and backend dependencies are installed.")
     sys.exit(1)
+except Exception as e:
+    if "ValidationError" in str(e) and "firebase" in str(e).lower():
+        print("❌ Firebase Configuration Error")
+        print("━" * 50)
+        print("The Firebase environment variables are present but invalid.")
+        print()
+        print("🔍 Common Issues:")
+        print("• FIREBASE_PRIVATE_KEY should be a full private key starting with")
+        print("  '-----BEGIN PRIVATE KEY-----' NOT an API key like 'AIzaSy...'")
+        print("• Missing quotes around private key value")
+        print("• Incorrect project ID or service account email")
+        print()
+        print("✅ Correct format in 'backend/.env':")
+        print('FIREBASE_PROJECT_ID=your-project-id')
+        print('FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com')
+        print('FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\\nMIIEvgIBADANB...\\n-----END PRIVATE KEY-----\\n"')
+        print('FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com')
+        print()
+        print("💡 To get proper credentials:")
+        print("1. Firebase Console → Project Settings → Service Accounts")
+        print("2. Click 'Generate new private key'")
+        print("3. Download the JSON file and extract the values")
+        print("4. Use 'private_key' field (not 'api_key') for FIREBASE_PRIVATE_KEY")
+        print()
+        print("📖 See SECRETS_REQUIRED.md for detailed setup instructions.")
+        print("━" * 50)
+        sys.exit(1)
+    else:
+        print(f"❌ Backend configuration error: {e}")
+        sys.exit(1)
 
 # Top 40 cryptocurrencies by market cap (as of 2025)
 # Format: (symbol, name, coingecko_id)
@@ -97,8 +127,22 @@ class WatchlistPopulator:
             print("✓ Firestore connection established")
             return True
         except Exception as e:
-            print(f"✗ Failed to connect to Firestore: {e}")
-            print("Make sure Firebase credentials are properly configured in backend/.env")
+            print("❌ Failed to connect to Firestore")
+            print("━" * 50)
+            if "firebase" in str(e).lower() or "credential" in str(e).lower():
+                print("Firebase credentials are not properly configured.")
+                print()
+                print("Please check your 'backend/.env' file contains:")
+                print("• FIREBASE_PROJECT_ID")
+                print("• FIREBASE_CLIENT_EMAIL") 
+                print("• FIREBASE_PRIVATE_KEY")
+                print("• FIREBASE_STORAGE_BUCKET")
+                print()
+                print("💡 Run this command to check your .env file:")
+                print("cat backend/.env | grep FIREBASE")
+            else:
+                print(f"Connection error: {e}")
+            print("━" * 50)
             return False
     
     def get_market_data(self, coingecko_ids: List[str]) -> Dict[str, Dict]:

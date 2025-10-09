@@ -61,9 +61,60 @@ check_prerequisites() {
         print_warning "Backend requirements.txt not found"
     fi
     
-    # Check if .env file exists
+    # Check if .env file exists and has Firebase credentials
     if [[ ! -f "$BACKEND_PATH/.env" ]]; then
-        print_warning "Backend .env file not found. Firebase credentials may not be configured."
+        print_error "Backend .env file not found at $BACKEND_PATH/.env"
+        echo ""
+        print_status "Firebase credentials are required for this script to work."
+        print_status "Please create a .env file in the backend directory with:"
+        echo "  FIREBASE_PROJECT_ID=your-project-id"
+        echo "  FIREBASE_CLIENT_EMAIL=your-service-account-email"
+        echo "  FIREBASE_PRIVATE_KEY=\"-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n\""
+        echo "  FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com"
+        echo ""
+        exit 1
+    else
+        # Check if Firebase variables are present
+        local firebase_vars=("FIREBASE_PROJECT_ID" "FIREBASE_CLIENT_EMAIL" "FIREBASE_PRIVATE_KEY" "FIREBASE_STORAGE_BUCKET")
+        local missing_vars=()
+        
+        for var in "${firebase_vars[@]}"; do
+            if ! grep -q "^${var}=" "$BACKEND_PATH/.env"; then
+                missing_vars+=("$var")
+            fi
+        done
+        
+        if [[ ${#missing_vars[@]} -gt 0 ]]; then
+            print_error "Missing Firebase environment variables in backend/.env:"
+            for var in "${missing_vars[@]}"; do
+                echo "  - $var"
+            done
+            echo ""
+            print_status "All Firebase variables are required for Firestore connection."
+            exit 1
+        fi
+        
+        # Check if FIREBASE_PRIVATE_KEY has correct format
+        local private_key_value=$(grep "^FIREBASE_PRIVATE_KEY=" "$BACKEND_PATH/.env" | cut -d'=' -f2- | tr -d '"')
+        if [[ "$private_key_value" == AIzaSy* ]]; then
+            print_error "Invalid FIREBASE_PRIVATE_KEY format detected"
+            echo ""
+            print_status "The FIREBASE_PRIVATE_KEY appears to be an API key (starts with 'AIzaSy')"
+            print_status "but it should be a private key starting with '-----BEGIN PRIVATE KEY-----'"
+            echo ""
+            print_status "💡 To fix this:"
+            print_status "1. Go to Firebase Console → Project Settings → Service Accounts"
+            print_status "2. Click 'Generate new private key' (download JSON)"
+            print_status "3. Use the 'private_key' field from the JSON (not api_key)"
+            print_status "4. Update FIREBASE_PRIVATE_KEY in backend/.env"
+            echo ""
+            exit 1
+        elif [[ ! "$private_key_value" =~ ^-----BEGIN\ PRIVATE\ KEY----- ]]; then
+            print_warning "FIREBASE_PRIVATE_KEY format may be incorrect"
+            print_status "Expected format: -----BEGIN PRIVATE KEY-----...-----END PRIVATE KEY-----"
+        else
+            print_success "Firebase credentials found and formatted correctly"
+        fi
     fi
     
     # Check if script exists

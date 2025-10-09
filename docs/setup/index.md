@@ -18,6 +18,13 @@ This directory contains setup scripts and tools for initializing and managing th
 - Prerequisites checking
 - Colored output and user confirmations
 
+### 🛡️ `validate_firebase.sh`
+**Firebase configuration validator**
+- Checks .env file presence and format
+- Validates all required Firebase credentials
+- Detects common configuration mistakes
+- Provides step-by-step resolution guidance
+
 ### ⚙️ `watchlist_config.ini`
 **Configuration file**
 - Customizable token lists

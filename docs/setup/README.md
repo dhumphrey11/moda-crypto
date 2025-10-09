@@ -35,30 +35,39 @@ A comprehensive script to add the top 40 most popular cryptocurrencies to the Fi
 
 ### Usage
 
+#### 🔍 Validate Firebase Configuration (Recommended First Step)
+Check if Firebase credentials are properly configured:
+```bash
+cd /path/to/moda-crypto
+./docs/setup/validate_firebase.sh
+```
+
 #### Basic Usage (Dry Run)
 Preview what tokens would be added without making changes:
 ```bash
 cd /path/to/moda-crypto
-python docs/setup/populate_watchlist.py --dry-run
+./docs/setup/populate_watchlist.sh --dry-run
 ```
 
 #### Add Tokens to Watchlist
 Add the top 40 cryptocurrencies to your watchlist:
 ```bash
 cd /path/to/moda-crypto
-python docs/setup/populate_watchlist.py
+./docs/setup/populate_watchlist.sh
 ```
 
 #### Force Update Existing Tokens
 Overwrite existing tokens with fresh market data:
 ```bash
 cd /path/to/moda-crypto
-python docs/setup/populate_watchlist.py --force
+./docs/setup/populate_watchlist.sh --force
 ```
 
-#### Help
-View all available options:
+#### Direct Python Script Usage
+You can also run the Python script directly:
 ```bash
+cd /path/to/moda-crypto
+python docs/setup/populate_watchlist.py --dry-run
 python docs/setup/populate_watchlist.py --help
 ```
 

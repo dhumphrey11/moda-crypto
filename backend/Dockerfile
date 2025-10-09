@@ -21,6 +21,9 @@ COPY . .
 # Create models directory
 RUN mkdir -p models
 
+# Copy debug script
+COPY debug_startup.py /app/debug_startup.py
+
 # Set environment variables
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1

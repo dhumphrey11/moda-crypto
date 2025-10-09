@@ -10,10 +10,34 @@ def main():
     print("=== Backend Startup Debug ===")
     print(f"Python version: {sys.version}")
     print(f"Current working directory: {os.getcwd()}")
+    print(f"PYTHONPATH: {os.environ.get('PYTHONPATH', 'Not set')}")
     print()
     
+    # Check critical imports first
+    print("=== Import Tests ===")
+    try:
+        import fastapi
+        print(f"✓ FastAPI {fastapi.__version__} imported successfully")
+    except Exception as e:
+        print(f"✗ FastAPI import failed: {e}")
+        return 1
+        
+    try:
+        import uvicorn
+        print(f"✓ Uvicorn imported successfully")
+    except Exception as e:
+        print(f"✗ Uvicorn import failed: {e}")
+        return 1
+        
+    try:
+        import firebase_admin
+        print(f"✓ Firebase Admin SDK imported successfully")
+    except Exception as e:
+        print(f"✗ Firebase Admin SDK import failed: {e}")
+        return 1
+    
     # Check environment variables
-    print("=== Environment Variables ===")
+    print("\n=== Environment Variables ===")
     required_vars = [
         'FIREBASE_PROJECT_ID',
         'FIREBASE_CLIENT_EMAIL', 
@@ -22,17 +46,26 @@ def main():
         'PORT'
     ]
     
+    missing_vars = []
     for var in required_vars:
         value = os.environ.get(var)
         if value:
             if 'PRIVATE_KEY' in var:
-                print(f"{var}: [SET - length: {len(value)}]")
+                # Check if it looks like a valid private key
+                if value.strip().startswith('-----BEGIN'):
+                    print(f"✓ {var}: [Valid format - length: {len(value)}]")
+                else:
+                    print(f"⚠ {var}: [SET but may need formatting - length: {len(value)}]")
             else:
-                print(f"{var}: {value}")
+                print(f"✓ {var}: {value}")
         else:
-            print(f"{var}: [NOT SET] ❌")
+            print(f"✗ {var}: [NOT SET]")
+            missing_vars.append(var)
     
-    print()
+    if missing_vars:
+        print(f"\n❌ Missing required environment variables: {missing_vars}")
+        return False
+    
     
     # Try to load settings
     print("=== Loading Settings ===")
@@ -69,6 +102,20 @@ def main():
     except Exception as e:
         print(f"❌ FastAPI app creation error: {e}")
         return False
+    
+    # Test port binding
+    print("\n=== Testing Port Binding ===")
+    try:
+        import socket
+        port = int(os.environ.get('PORT', '8080'))
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(('0.0.0.0', port))
+        sock.close()
+        print(f"✅ Port {port} is available for binding")
+    except Exception as e:
+        print(f"⚠ Port {port} binding test failed: {e}")
+        # This is not necessarily fatal, could be permission issue
         
     print("\n=== All Checks Passed! ===")
     return True

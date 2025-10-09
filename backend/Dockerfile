@@ -28,9 +28,13 @@ ENV PYTHONUNBUFFERED=1
 # Expose port
 EXPOSE 8000
 
+# Copy and set executable startup script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
 # Health check - use PORT environment variable or default to 8000
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD python -c "import requests, os; requests.get(f'http://localhost:{os.environ.get(\"PORT\", \"8000\")}/health')" || exit 1
 
-# Run the application - use PORT environment variable (Cloud Run provides this)
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+# Run the application using startup script
+CMD ["/app/start.sh"]

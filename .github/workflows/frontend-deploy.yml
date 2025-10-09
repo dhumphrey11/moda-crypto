@@ -91,12 +91,8 @@ jobs:
 
     - name: Deploy to Firebase Hosting
       run: |
-        echo "Setting up Firebase authentication..."
-        echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" > firebase-service-account.json
-        export GOOGLE_APPLICATION_CREDENTIALS="firebase-service-account.json"
-        
         echo "Deploying to Firebase Hosting..."
-        firebase deploy --only hosting --project ${{ secrets.FIREBASE_PROJECT_ID }} --public frontend/out
+        firebase deploy --only hosting --project ${{ secrets.FIREBASE_PROJECT_ID }} --token "${{ secrets.FIREBASE_TOKEN }}"
 
     - name: Get deployment URL
       run: |
@@ -118,7 +114,6 @@ jobs:
       if: always()
       run: |
         cd frontend
-        rm -f firebase-service-account.json
         rm -f .env.local
 
     - name: Notify deployment success

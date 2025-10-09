@@ -25,16 +25,16 @@ RUN mkdir -p models
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-# Expose port
-EXPOSE 8000
+# Expose port (Cloud Run will set PORT env var)
+EXPOSE 8080
 
 # Copy and set executable startup script
 COPY start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
-# Health check - use PORT environment variable or default to 8000
+# Health check - use PORT environment variable or default to 8080
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD python -c "import requests, os; requests.get(f'http://localhost:{os.environ.get(\"PORT\", \"8000\")}/health')" || exit 1
+    CMD python -c "import requests, os; requests.get(f'http://localhost:{os.environ.get(\"PORT\", \"8080\")}/health')" || exit 1
 
 # Run the application using startup script
 CMD ["/app/start.sh"]

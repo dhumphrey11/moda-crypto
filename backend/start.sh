@@ -1,7 +1,9 @@
 #!/bin/bash
 # Startup script for Cloud Run
-# Uses PORT environment variable provided by Cloud Run, defaults to 8000 for local development
+# Uses PORT environment variable provided by Cloud Run, defaults to 8080 for local development
 
-PORT=${PORT:-8000}
+PORT=${PORT:-8080}
 echo "Starting FastAPI server on port $PORT"
+echo "Environment: ${ENVIRONMENT:-development}"
+echo "Firebase Project ID: ${FIREBASE_PROJECT_ID:-not-set}"
 exec uvicorn app.main:app --host 0.0.0.0 --port $PORT

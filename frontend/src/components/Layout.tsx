@@ -31,13 +31,13 @@ const Layout = ({ children }: LayoutProps) => {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Navigation */}
-            <nav className="bg-white shadow-sm border-b border-gray-200">
+            <nav className="bg-slate-800 shadow-lg border-b border-slate-700">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between h-16">
                         <div className="flex">
                             {/* Logo */}
                             <div className="flex-shrink-0 flex items-center">
-                                <Link href="/" className="text-xl font-bold text-primary-600">
+                                <Link href="/" className="text-xl font-bold text-white hover:text-primary-300 transition-colors">
                                     Moda Crypto
                                 </Link>
                             </div>
@@ -50,9 +50,9 @@ const Layout = ({ children }: LayoutProps) => {
                                         <Link
                                             key={item.name}
                                             href={item.href}
-                                            className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive
-                                                ? 'border-primary-500 text-gray-900'
-                                                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                                            className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors ${isActive
+                                                ? 'border-primary-400 text-white'
+                                                : 'border-transparent text-gray-300 hover:border-gray-500 hover:text-white'
                                                 }`}
                                         >
                                             <span className="mr-2">{item.icon}</span>
@@ -70,13 +70,13 @@ const Layout = ({ children }: LayoutProps) => {
                                     <div className="flex items-center space-x-4">
                                         {/* User Info */}
                                         <div className="text-sm">
-                                            <div className="font-medium text-gray-900">{user?.email}</div>
-                                            <div className="text-gray-500">Administrator</div>
+                                            <div className="font-medium text-white">{user?.email}</div>
+                                            <div className="text-gray-300">Administrator</div>
                                         </div>
 
                                         {/* User Avatar */}
-                                        <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
-                                            <span className="text-primary-600 font-medium">
+                                        <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
+                                            <span className="text-white font-medium">
                                                 {user?.email?.charAt(0).toUpperCase()}
                                             </span>
                                         </div>
@@ -84,7 +84,7 @@ const Layout = ({ children }: LayoutProps) => {
                                         {/* Logout Button */}
                                         <button
                                             onClick={handleLogout}
-                                            className="text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600"
+                                            className="text-gray-300 hover:text-white focus:outline-none focus:text-white transition-colors"
                                             title="Logout"
                                         >
                                             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,9 +107,9 @@ const Layout = ({ children }: LayoutProps) => {
                                 <Link
                                     key={item.name}
                                     href={item.href}
-                                    className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${isActive
-                                        ? 'bg-primary-50 border-primary-500 text-primary-700'
-                                        : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
+                                    className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium transition-colors ${isActive
+                                        ? 'bg-slate-700 border-primary-400 text-white'
+                                        : 'border-transparent text-gray-300 hover:bg-slate-700 hover:border-gray-500 hover:text-white'
                                         }`}
                                 >
                                     <span className="mr-2">{item.icon}</span>
@@ -129,17 +129,17 @@ const Layout = ({ children }: LayoutProps) => {
             </main>
 
             {/* Footer */}
-            <footer className="bg-white border-t border-gray-200 mt-12">
+            <footer className="bg-slate-800 border-t border-slate-700 mt-12">
                 <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center">
-                        <div className="text-sm text-gray-500">
-                            © 2024 Moda Crypto. Built with Next.js and FastAPI.
+                        <div className="text-sm text-gray-300">
+                            © 2025 Moda Crypto. Built with Next.js and FastAPI.
                         </div>
                         <div className="flex space-x-6">
-                            <a href="#" className="text-sm text-gray-500 hover:text-gray-900">
+                            <a href="#" className="text-sm text-gray-300 hover:text-white transition-colors">
                                 GitHub
                             </a>
-                            <a href="#" className="text-sm text-gray-500 hover:text-gray-900">
+                            <a href="#" className="text-sm text-gray-300 hover:text-white transition-colors">
                                 Documentation
                             </a>
                         </div>

@@ -147,3 +147,4 @@ jobs:
           https://${{ secrets.FIREBASE_PROJECT_ID }}.web.app
         uploadArtifacts: true
         temporaryPublicStorage: true
+        artifactName: lighthouse-results-${{ github.run_id }}

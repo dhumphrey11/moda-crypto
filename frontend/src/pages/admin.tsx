@@ -47,9 +47,10 @@ const AdminPage: NextPage = () => {
         error: null
     });
 
-    const [activeTab, setActiveTab] = useState<'overview' | 'models' | 'gcp' | 'firebase' | 'apis' | 'settings'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'models' | 'gcp' | 'firebase' | 'apis' | 'settings' | 'populate'>('overview');
     const [settingsEditing, setSettingsEditing] = useState(false);
     const [settingsForm, setSettingsForm] = useState<typeof data.portfolioSettings>(null);
+    const [populateTokens, setPopulateTokens] = useState(40);
 
     useEffect(() => {
         loadAdminData();
@@ -124,6 +125,15 @@ const AdminPage: NextPage = () => {
             alert('Settings saved successfully');
         } catch (error) {
             alert(`Failed to save settings: ${error}`);
+        }
+    };
+
+    const populateWatchlist = async () => {
+        try {
+            const response = await dataService.postToBackend(`/admin/populate/watchlist?top_n=${populateTokens}`, {}) as { tokens_added: number; message: string };
+            alert(`Successfully populated watchlist with ${response.tokens_added} tokens`);
+        } catch (error) {
+            alert(`Failed to populate watchlist: ${error}`);
         }
     };
 
@@ -222,6 +232,7 @@ const AdminPage: NextPage = () => {
                             { id: 'gcp', name: 'GCP Status', icon: '☁️' },
                             { id: 'firebase', name: 'Firebase', icon: '🔥' },
                             { id: 'apis', name: 'API Services', icon: '🔌' },
+                            { id: 'populate', name: 'Populate', icon: '📋' },
                             { id: 'settings', name: 'Settings', icon: '⚙️' }
                         ].map((tab) => (
                             <button
@@ -525,6 +536,44 @@ const AdminPage: NextPage = () => {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                )}
+
+                {/* Populate Tab */}
+                {activeTab === 'populate' && (
+                    <div className="space-y-6">
+                        <div className="bg-white rounded-lg shadow">
+                            <div className="px-6 py-4 border-b border-gray-200">
+                                <h3 className="text-lg font-medium text-gray-900">Populate Watchlist</h3>
+                                <p className="text-sm text-gray-600 mt-1">Add popular cryptocurrencies to the watchlist</p>
+                            </div>
+                            <div className="px-6 py-4">
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Number of tokens to add:
+                                        </label>
+                                        <select 
+                                            value={populateTokens}
+                                            onChange={(e) => setPopulateTokens(Number(e.target.value))}
+                                            className="w-48 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                            <option value={10}>10 tokens</option>
+                                            <option value={20}>20 tokens</option>
+                                            <option value={30}>30 tokens</option>
+                                            <option value={40}>40 tokens</option>
+                                            <option value={50}>50 tokens</option>
+                                        </select>
+                                    </div>
+                                    <button
+                                        onClick={() => populateWatchlist()}
+                                        className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                                    >
+                                        Populate Watchlist
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}

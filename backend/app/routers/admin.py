@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Query, Body
+from fastapi import APIRouter, HTTPException, Query, Body
 from datetime import datetime
 import logging
 import time
@@ -11,7 +11,7 @@ router = APIRouter()
 
 
 @router.post("/retrain")
-async def retrain_model(background_tasks: BackgroundTasks):
+async def retrain_model():
     """
     Trigger model retraining.
     This endpoint initiates the full ML model training pipeline.
@@ -25,9 +25,8 @@ async def retrain_model(background_tasks: BackgroundTasks):
 
         duration = time.time() - start_time
 
-        # Write run log
-        background_tasks.add_task(
-            write_run, "model_retrain", 1, "success", duration)
+        # Write run log directly
+        write_run("model_retrain", 1, "success", duration)
 
         return {
             "status": "success",
@@ -39,8 +38,7 @@ async def retrain_model(background_tasks: BackgroundTasks):
     except Exception as e:
         duration = time.time() - start_time
         logging.error(f"Model retraining failed: {e}")
-        background_tasks.add_task(
-            write_run, "model_retrain", 0, "error", duration)
+        write_run("model_retrain", 0, "error", duration)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -193,7 +191,7 @@ async def get_system_stats():
 
 
 @router.post("/tokens/sync")
-async def sync_token_list(background_tasks: BackgroundTasks):
+async def sync_token_list():
     """
     Sync token list from external sources.
     This endpoint updates the tokens collection with latest token information.
@@ -645,7 +643,7 @@ async def remove_token_from_watchlist(token_id: str):
 
 
 @router.post("/watchlist/sync")
-async def sync_watchlist_data(background_tasks: BackgroundTasks):
+async def sync_watchlist_data():
     """Sync watchlist tokens with latest market data."""
     try:
         from ..firestore_client import get_tokens_list
@@ -659,9 +657,8 @@ async def sync_watchlist_data(background_tasks: BackgroundTasks):
         
         synced_count = len(active_tokens)
         
-        background_tasks.add_task(
-            write_run, "watchlist_sync", synced_count, "success", 0
-        )
+        # Write run log directly
+        write_run("watchlist_sync", synced_count, "success", 0)
         
         return {
             "status": "success",
@@ -834,70 +831,52 @@ async def create_manual_alert(
         return {"status": "error", "message": str(e)}
 
 
-@router.post("/system/monitoring/start-background")
-async def start_background_monitoring_endpoint():
-    """Start background monitoring tasks."""
+@router.post("/system/monitoring/check-now")
+async def check_monitoring_now():
+    """Run immediate monitoring check (no background tasks)."""
     try:
-        from ..monitoring import start_background_monitoring, get_monitoring_status
+        # Run threshold check immediately
+        from ..firestore_client import check_system_thresholds
+        alerts_created = check_system_thresholds()
         
-        # Start monitoring scheduler
-        monitoring_started = await start_background_monitoring()
+        logging.info(f"Manual monitoring check completed - {len(alerts_created)} alerts created")
         
-        if monitoring_started:
-            # Run initial threshold check
-            from ..firestore_client import check_system_thresholds
-            alerts_created = check_system_thresholds()
-            
-            status = get_monitoring_status()
-            
-            logging.info("Background monitoring started via admin endpoint")
-            
-            return {
-                "status": "success",
-                "message": "Background monitoring started successfully",
-                "initial_alerts_created": len(alerts_created),
-                "monitoring_status": status,
-                "timestamp": datetime.utcnow().isoformat()
-            }
-        else:
-            status = get_monitoring_status()
-            return {
-                "status": "success",
-                "message": "Background monitoring was already running",
-                "monitoring_status": status,
-                "timestamp": datetime.utcnow().isoformat()
-            }
+        return {
+            "status": "success",
+            "message": f"Monitoring check completed successfully",
+            "alerts_created": len(alerts_created),
+            "timestamp": datetime.utcnow().isoformat()
+        }
         
     except Exception as e:
-        logging.error(f"Error starting background monitoring: {e}")
+        logging.error(f"Error running monitoring check: {e}")
         return {"status": "error", "message": str(e)}
 
 
-@router.post("/system/monitoring/stop-background")
-async def stop_background_monitoring_endpoint():
-    """Stop background monitoring tasks."""
+@router.get("/system/monitoring/simple-status")
+async def get_simple_monitoring_status():
+    """Get basic monitoring status without background complexity."""
     try:
-        from ..monitoring import stop_background_monitoring, get_monitoring_status
+        from ..firestore_client import get_tokens_list, get_active_alerts
         
-        # Stop monitoring scheduler
-        monitoring_stopped = await stop_background_monitoring()
+        # Get basic counts
+        tokens = get_tokens_list()
+        active_tokens = [token for token in tokens if token.get('active', True)]
+        alerts = get_active_alerts(limit=10)
         
-        if monitoring_stopped:
-            logging.info("Background monitoring stopped via admin endpoint")
-            return {
-                "status": "success",
-                "message": "Background monitoring stopped successfully",
-                "timestamp": datetime.utcnow().isoformat()
-            }
-        else:
-            return {
-                "status": "success",
-                "message": "Background monitoring was not running",
-                "timestamp": datetime.utcnow().isoformat()
-            }
+        return {
+            "status": "success", 
+            "monitoring": {
+                "tokens_count": len(active_tokens),
+                "active_alerts": len(alerts),
+                "last_check": datetime.utcnow().isoformat(),
+                "status": "active"
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
         
     except Exception as e:
-        logging.error(f"Error stopping background monitoring: {e}")
+        logging.error(f"Error getting monitoring status: {e}")
         return {"status": "error", "message": str(e)}
 
 
@@ -918,3 +897,98 @@ async def get_monitoring_status_endpoint():
     except Exception as e:
         logging.error(f"Error getting monitoring status: {e}")
         return {"status": "error", "message": str(e)}
+
+
+# ================================
+# POPULATE SECTION
+# ================================
+
+@router.post("/populate/watchlist")
+async def populate_watchlist(
+    top_n: int = Query(40, description="Number of top tokens to add to watchlist")
+):
+    """Populate watchlist with popular crypto symbols."""
+    try:
+        from ..firestore_client import init_db
+        
+        # Simple list of popular crypto symbols
+        popular_cryptos = [
+            "BTC", "ETH", "USDT", "BNB", "SOL", "USDC", "XRP", "DOGE", "TON", "ADA",
+            "SHIB", "AVAX", "TRX", "DOT", "BCH", "LINK", "NEAR", "MATIC", "ICP", "UNI", 
+            "LTC", "PEPE", "LEO", "DAI", "ETC", "HBAR", "XMR", "RENDER", "KASPA", "ARB",
+            "VET", "XLM", "FIL", "ATOM", "CRO", "MKR", "OP", "IMX", "INJ", "MANTLE"
+        ]
+        
+        # Take only the requested number of tokens
+        tokens_to_add = popular_cryptos[:top_n]
+        
+        db = init_db()
+        added_count = 0
+        
+        # Simply write each symbol to Firestore
+        for symbol in tokens_to_add:
+            try:
+                token_doc = {
+                    'symbol': symbol,
+                    'name': symbol,  # Keep it simple - just use symbol as name
+                    'active': True,
+                    'added_at': datetime.utcnow().isoformat(),
+                    'last_updated': datetime.utcnow()
+                }
+                
+                # Write to tokens collection
+                db.collection('tokens').document(symbol).set(token_doc)
+                added_count += 1
+                
+            except Exception as e:
+                logging.error(f"Error adding token {symbol}: {e}")
+                continue
+        
+        return {
+            "status": "success",
+            "message": f"Added {added_count} popular crypto tokens to watchlist",
+            "tokens_added": added_count,
+            "requested": top_n
+        }
+        
+    except Exception as e:
+        logging.error(f"Error populating watchlist: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/populate/status")
+async def get_populate_status():
+    """Get current populate operation status."""
+    try:
+        from ..firestore_client import get_tokens_list
+        
+        # Just return the current count of tokens in the watchlist
+        tokens = get_tokens_list()
+        active_tokens = [token for token in tokens if token.get('active', True)]
+        
+        return {
+            "status": "success",
+            "populate_status": {
+                "active": False,  # We use synchronous populate, so never active
+                "current_operation": None,
+                "progress": {},
+                "data_counts": {
+                    "tokens": len(active_tokens)
+                }
+            }
+        }
+            
+    except Exception as e:
+        logging.error(f"Error getting populate status: {e}")
+        return {
+            "status": "success", 
+            "populate_status": {
+                "active": False,
+                "current_operation": None,
+                "progress": {},
+                "data_counts": {"tokens": 0}
+            }
+        }
+
+
+

@@ -92,8 +92,8 @@ def init_db():
 # Helper functions for common Firestore operations
 
 
-def write_run(service: str, count: int, status: str, duration: float = 0.0) -> None:
-    """Write a run log entry to Firestore."""
+def write_run(service: str, count: int, status: str, duration: float = 0.0, universe: Optional[str] = None) -> None:
+    """Write a run log entry to Firestore with optional universe information."""
     try:
         db = init_db()
         run_data = {
@@ -103,8 +103,17 @@ def write_run(service: str, count: int, status: str, duration: float = 0.0) -> N
             'count': count,
             'duration': duration
         }
+        
+        # Add universe information if provided
+        if universe:
+            run_data['universe'] = universe
+            
         db.collection('runs').add(run_data)
-        logging.info(f"Run logged: {service} - {status} ({count} items)")
+        
+        log_msg = f"Run logged: {service} - {status} ({count} items)"
+        if universe:
+            log_msg += f" - universe: {universe}"
+        logging.info(log_msg)
     except Exception as e:
         logging.error(f"Failed to write run log: {e}")
 

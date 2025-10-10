@@ -1,110 +1,205 @@
-# Moda Crypto - Cron Jobs Configuration
+# Moda Crypto - Universe-Based Cron Jobs Configuration
 # 
-# These are example cron job entries for automating the crypto signal system.
-# You can use these with Cloud Scheduler, cron on a server, or any job scheduler.
+# This configuration implements a three-tier universe system for optimized data ingestion:
+# - Market Universe: Top tokens for macro market trends (hourly updates)
+# - Watchlist Universe: Curated tokens for ML features (15-60min updates) 
+# - Portfolio Universe: Active trading positions (1-5min updates)
 #
 # Format: minute hour day month weekday command
 # All times are in UTC
 
 # =============================================================================
-# DATA FETCHING JOBS
+# MARKET UNIVERSE - Macro Market Data (Hourly Updates)
 # =============================================================================
 
-# Fetch market data from CoinGecko every 30 minutes
-*/30 * * * * curl -X POST "https://your-backend-url.run.app/fetch/coingecko" -H "Content-Type: application/json"
+# Fetch market summary for Market Universe every hour
+0 * * * * curl -X POST "https://your-backend-url.run.app/fetch/market-summary" -H "Content-Type: application/json"
 
-# Fetch on-chain data from Moralis every hour
-0 * * * * curl -X POST "https://your-backend-url.run.app/fetch/moralis" -H "Content-Type: application/json"
-
-# Fetch blockchain data from Covalent every 2 hours
-0 */2 * * * curl -X POST "https://your-backend-url.run.app/fetch/covalent" -H "Content-Type: application/json"
-
-# Fetch social sentiment from LunarCrush every 4 hours
-0 */4 * * * curl -X POST "https://your-backend-url.run.app/fetch/lunarcrush" -H "Content-Type: application/json"
-
-# Fetch events from CoinMarketCal twice daily
-0 8,20 * * * curl -X POST "https://your-backend-url.run.app/fetch/coinmarketcal" -H "Content-Type: application/json"
-
-# Fetch news from CryptoPanic every 3 hours
-0 */3 * * * curl -X POST "https://your-backend-url.run.app/fetch/cryptopanic" -H "Content-Type: application/json"
+# Fetch basic token metrics for Market Universe every 30 minutes
+*/30 * * * * curl -X POST "https://your-backend-url.run.app/fetch/market-tokens" -H "Content-Type: application/json"
 
 # =============================================================================
-# SIGNAL COMPUTATION JOBS
+# WATCHLIST UNIVERSE - ML Feature Engineering (15-60min Updates)  
 # =============================================================================
 
-# Compute signals every hour (after data fetching)
-15 * * * * curl -X POST "https://your-backend-url.run.app/compute/signals" -H "Content-Type: application/json"
+# Fetch comprehensive features for Watchlist Universe every 30 minutes
+*/30 * * * * curl -X POST "https://your-backend-url.run.app/fetch/features" -H "Content-Type: application/json"
+
+# Compute ML signals for Watchlist Universe every 15 minutes (after features)
+*/15 * * * * curl -X POST "https://your-backend-url.run.app/compute/signals" -H "Content-Type: application/json"
 
 # =============================================================================
-# PAPER TRADING JOBS
+# PORTFOLIO UNIVERSE - Active Trading Positions (1-5min Updates)
 # =============================================================================
 
-# Execute paper trades every hour (after signal computation)
-30 * * * * curl -X POST "https://your-backend-url.run.app/paper-trade/execute" -H "Content-Type: application/json"
+# Fetch real-time portfolio data every 5 minutes
+*/5 * * * * curl -X POST "https://your-backend-url.run.app/fetch/portfolio" -H "Content-Type: application/json"
+
+# Execute paper trades every 5 minutes (after portfolio data)
+2,7,12,17,22,27,32,37,42,47,52,57 * * * * curl -X POST "https://your-backend-url.run.app/paper-trade/execute" -H "Content-Type: application/json"
 
 # =============================================================================
 # MAINTENANCE AND ADMIN JOBS
 # =============================================================================
 
-# Retrain ML model weekly (Sunday at 2 AM UTC)
+# Retrain ML model weekly using Watchlist Universe (Sunday at 2 AM UTC)
 0 2 * * 0 curl -X POST "https://your-backend-url.run.app/admin/retrain" -H "Content-Type: application/json"
 
-# Sync token list daily (6 AM UTC)
-0 6 * * * curl -X POST "https://your-backend-url.run.app/admin/tokens/sync" -H "Content-Type: application/json"
+# Sync all universes with current UI and portfolio data (every 4 hours)
+0 */4 * * * curl -X POST "https://your-backend-url.run.app/admin/universes/sync" -H "Content-Type: application/json"
 
-# Health check every 15 minutes (for monitoring)
-*/15 * * * * curl -X GET "https://your-backend-url.run.app/health" -H "Content-Type: application/json"
+# Sync Watchlist Universe with UI watchlist changes (every hour)
+0 * * * * curl -X POST "https://your-backend-url.run.app/admin/universes/watchlist/sync" -H "Content-Type: application/json"
+
+# Sync Portfolio Universe with active positions (every 15 minutes)
+*/15 * * * * curl -X POST "https://your-backend-url.run.app/admin/universes/portfolio/sync" -H "Content-Type: application/json"
+
+# Health check and system stats every 6 hours
+0 */6 * * * curl -X GET "https://your-backend-url.run.app/health" -H "Content-Type: application/json"
+
+# Generate system statistics report daily (8 AM UTC)
+0 8 * * * curl -X GET "https://your-backend-url.run.app/admin/stats" -H "Content-Type: application/json"
 
 # =============================================================================
-# BATCH OPERATIONS (Optional)
+# HISTORICAL DATA MAINTENANCE (Universe-Targeted)
 # =============================================================================
 
-# Fetch all data sources at once (alternative to individual fetches)
+# Weekly historical data refresh for Watchlist Universe (Sunday 3 AM UTC)
+0 3 * * 0 curl -X POST "https://your-backend-url.run.app/admin/populate/historical-watchlist?days_back=7" -H "Content-Type: application/json"
+
+# Monthly historical data refresh for Portfolio Universe (1st of month, 4 AM UTC)
+0 4 1 * * curl -X POST "https://your-backend-url.run.app/admin/populate/historical-portfolio?days_back=30" -H "Content-Type: application/json"
+
+# Quarterly historical data refresh for Market Universe (1st of quarter, 5 AM UTC)
+0 5 1 1,4,7,10 * curl -X POST "https://your-backend-url.run.app/admin/populate/historical-market?days_back=90" -H "Content-Type: application/json"
+
+# =============================================================================
+# LEGACY ENDPOINTS (Optional - for backward compatibility)
+# =============================================================================
+
+# Legacy: Fetch all sources every 6 hours (fallback)
 # 0 */6 * * * curl -X POST "https://your-backend-url.run.app/fetch/all" -H "Content-Type: application/json"
 
+# Legacy: Individual service endpoints with universe filtering
+# */30 * * * * curl -X POST "https://your-backend-url.run.app/fetch/coingecko?universe=market" -H "Content-Type: application/json"
+
 # =============================================================================
-# CLOUD SCHEDULER EXAMPLES (GCP)
+# CLOUD SCHEDULER EXAMPLES (GCP) - Universe-Based
 # =============================================================================
 
-# If using Google Cloud Scheduler, you can create jobs like this:
-#
-# gcloud scheduler jobs create http fetch-coingecko \
-#   --schedule="*/30 * * * *" \
-#   --uri="https://your-backend-url.run.app/fetch/coingecko" \
+# Market Universe Jobs
+# gcloud scheduler jobs create http market-summary \
+#   --schedule="0 * * * *" \
+#   --uri="https://your-backend-url.run.app/fetch/market-summary" \
 #   --http-method=POST \
-#   --headers="Content-Type=application/json"
-#
+#   --headers="Content-Type=application/json" \
+#   --description="Fetch market summary for Market Universe"
+
+# gcloud scheduler jobs create http market-tokens \
+#   --schedule="*/30 * * * *" \
+#   --uri="https://your-backend-url.run.app/fetch/market-tokens" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json" \
+#   --description="Fetch token metrics for Market Universe"
+
+# Watchlist Universe Jobs  
+# gcloud scheduler jobs create http watchlist-features \
+#   --schedule="*/30 * * * *" \
+#   --uri="https://your-backend-url.run.app/fetch/features" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json" \
+#   --description="Fetch ML features for Watchlist Universe"
+
 # gcloud scheduler jobs create http compute-signals \
-#   --schedule="15 * * * *" \
+#   --schedule="*/15 * * * *" \
 #   --uri="https://your-backend-url.run.app/compute/signals" \
 #   --http-method=POST \
-#   --headers="Content-Type=application/json"
-#
+#   --headers="Content-Type=application/json" \
+#   --description="Compute ML signals for Watchlist Universe"
+
+# Portfolio Universe Jobs
+# gcloud scheduler jobs create http portfolio-data \
+#   --schedule="*/5 * * * *" \
+#   --uri="https://your-backend-url.run.app/fetch/portfolio" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json" \
+#   --description="Fetch real-time data for Portfolio Universe"
+
 # gcloud scheduler jobs create http execute-trades \
-#   --schedule="30 * * * *" \
+#   --schedule="2,7,12,17,22,27,32,37,42,47,52,57 * * * *" \
 #   --uri="https://your-backend-url.run.app/paper-trade/execute" \
 #   --http-method=POST \
-#   --headers="Content-Type=application/json"
-#
+#   --headers="Content-Type=application/json" \
+#   --description="Execute paper trades for Portfolio Universe"
+
+# Admin Jobs
 # gcloud scheduler jobs create http retrain-model \
 #   --schedule="0 2 * * 0" \
 #   --uri="https://your-backend-url.run.app/admin/retrain" \
 #   --http-method=POST \
-#   --headers="Content-Type=application/json"
+#   --headers="Content-Type=application/json" \
+#   --description="Weekly model retraining using Watchlist Universe"
+
+# Historical Data Maintenance Jobs
+# gcloud scheduler jobs create http historical-watchlist-weekly \
+#   --schedule="0 3 * * 0" \
+#   --uri="https://your-backend-url.run.app/admin/populate/historical-watchlist?days_back=7" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json" \
+#   --description="Weekly historical data refresh for Watchlist Universe"
+
+# gcloud scheduler jobs create http historical-portfolio-monthly \
+#   --schedule="0 4 1 * *" \
+#   --uri="https://your-backend-url.run.app/admin/populate/historical-portfolio?days_back=30" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json" \
+#   --description="Monthly historical data refresh for Portfolio Universe"
+
+# gcloud scheduler jobs create http historical-market-quarterly \
+#   --schedule="0 5 1 1,4,7,10 *" \
+#   --uri="https://your-backend-url.run.app/admin/populate/historical-market?days_back=90" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json" \
+#   --description="Quarterly historical data refresh for Market Universe"
 
 # =============================================================================
-# NOTES
+# UNIVERSE-BASED SCHEDULING STRATEGY NOTES
 # =============================================================================
 #
-# 1. Replace "https://your-backend-url.run.app" with your actual backend URL
+# 1. UNIVERSE FREQUENCIES:
+#    - Market Universe: 30-60 min updates (macro trends, less volatile)
+#    - Watchlist Universe: 15-30 min updates (ML feature engineering needs)  
+#    - Portfolio Universe: 1-5 min updates (active trading positions)
 #
-# 2. For production, consider:
-#    - Adding authentication headers if your API requires them
-#    - Using retry logic for failed requests
-#    - Setting up alerting for failed cron jobs
-#    - Monitoring job execution times
+# 2. COST OPTIMIZATION:
+#    - Market calls target 100-500 tokens but fetch less frequently
+#    - Watchlist calls target ≤100 curated tokens with moderate frequency
+#    - Portfolio calls target <10 active positions with high frequency
 #
-# 3. Adjust timing based on API rate limits:
+# 3. UNIVERSE MANAGEMENT:
+#    - Use /admin/universes endpoints to populate and manage token lists
+#    - Market Universe should be auto-populated with top market cap tokens
+#    - Watchlist Universe should be curated for ML model performance
+#    - Portfolio Universe should reflect actual trading positions
+#
+# 4. PRODUCTION SETUP:
+#    - Replace "https://your-backend-url.run.app" with your actual backend URL
+#    - Add authentication headers if your API requires them
+#    - Set up monitoring for universe population status
+#    - Monitor API quota usage per universe
+#    - Configure alerts for failed cron jobs with universe context
+#
+# 5. HISTORICAL DATA STRATEGY:
+#    - Watchlist Universe: Weekly refresh (7 days) - focused ML feature backfill
+#    - Portfolio Universe: Monthly refresh (30 days) - position performance history  
+#    - Market Universe: Quarterly refresh (90 days) - macro trend analysis
+#    - Use universe targeting to reduce historical API costs by 70-90%
+#
+# 6. PERFORMANCE MONITORING:
+#    - Track run logs by universe in Firestore 'runs' collection
+#    - Monitor token counts per universe vs. API limits
+#    - Adjust frequencies based on data freshness requirements vs. costs
+#    - Monitor historical data gaps and backfill as needed per universe
 #    - CoinGecko: 10-50 calls/minute (depending on plan)
 #    - Moralis: 25 requests/second
 #    - LunarCrush: Limited monthly requests

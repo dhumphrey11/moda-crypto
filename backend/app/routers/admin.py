@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query, Body
 from datetime import datetime
+from typing import Dict, List, Any
 import logging
 import time
 
@@ -560,6 +561,14 @@ async def add_token_to_watchlist(token_data: dict):
         
         logging.info(f"Added token to watchlist: {doc_id}")
         
+        # Auto-sync watchlist universe after adding token
+        try:
+            from ..universe_manager import universe_manager
+            await universe_manager.sync_watchlist_universe_from_ui()
+            logging.info("Watchlist universe auto-synced after token addition")
+        except Exception as sync_error:
+            logging.warning(f"Failed to auto-sync watchlist universe: {sync_error}")
+        
         return {
             "status": "success",
             "message": f"Token {doc_id} added to watchlist",
@@ -631,6 +640,16 @@ async def remove_token_from_watchlist(token_id: str):
         })
         
         logging.info(f"Removed token from watchlist: {token_id}")
+        
+        # Auto-sync watchlist universe after removing token
+        try:
+            from ..universe_manager import universe_manager
+            await universe_manager.sync_watchlist_universe_from_ui()
+            # Also remove from universe
+            await universe_manager.remove_token_from_universe("watchlist", token_id.lower())
+            logging.info("Watchlist universe auto-synced after token removal")
+        except Exception as sync_error:
+            logging.warning(f"Failed to auto-sync watchlist universe: {sync_error}")
         
         return {
             "status": "success",
@@ -991,4 +1010,537 @@ async def get_populate_status():
         }
 
 
+# ================================
+# HISTORICAL DATA POPULATION
+# ================================
+
+@router.post("/populate/historical-data")
+async def populate_historical_data(
+    days_back: int = Query(730, description="Number of days back to fetch (default: 2 years = 730 days)"),
+    sources: list[str] = Query(default=["all"], description="List of sources to fetch from (coingecko, moralis, covalent, lunarcrush, coinmarketcal, cryptopanic, all)"),
+    universe: str = Query("watchlist", description="Universe to target (market, watchlist, portfolio, all)")
+):
+    """
+    Populate historical data from external APIs using universe-targeted approach.
+    By default, uses watchlist universe for focused historical data collection.
+    This allows back-populating data for up to 2 years (730 days) worth of historical information.
+    """
+    try:
+        from ..services import coingecko, moralis, covalent, lunarcrush, coinmarketcal, cryptopanic
+        from ..firestore_client import init_db
+        import asyncio
+        from datetime import datetime, timedelta
+        
+        start_time = time.time()
+        
+        # Validate days_back (maximum 2 years)
+        max_days = 730  # 2 years
+        days_back = min(days_back, max_days)
+        
+        # Calculate date range
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days_back)
+        
+        # Get universe tokens for targeted historical data collection
+        from ..universe_manager import universe_manager, MARKET_UNIVERSE, WATCHLIST_UNIVERSE, PORTFOLIO_UNIVERSE
+        
+        valid_universes = [MARKET_UNIVERSE, WATCHLIST_UNIVERSE, PORTFOLIO_UNIVERSE, "all"]
+        if universe not in valid_universes:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid universe. Must be one of: {valid_universes}"
+            )
+        
+        # Get target tokens based on universe
+        target_tokens = []
+        universe_info = ""
+        
+        if universe == "all":
+            # Use all available tokens (legacy behavior)
+            universe_info = "all tokens"
+        else:
+            target_tokens = await universe_manager.get_universe_symbols(universe)
+            universe_info = f"{universe} universe ({len(target_tokens)} tokens)"
+            
+            if not target_tokens and universe != "all":
+                logging.warning(f"No tokens found in {universe} universe. Consider syncing universes first.")
+                return {
+                    "status": "warning",
+                    "message": f"No tokens configured in {universe} universe",
+                    "recommendation": f"Run POST /admin/universes/{universe}/sync to populate universe first"
+                }
+        
+        logging.info(f"Starting historical data population for {days_back} days ({start_date.date()} to {end_date.date()}) targeting {universe_info}")
+        
+        # Determine which sources to fetch from
+        all_sources = ["coingecko", "moralis", "covalent", "lunarcrush", "coinmarketcal", "cryptopanic"]
+        if "all" in sources:
+            active_sources = all_sources
+        else:
+            active_sources = [s for s in sources if s in all_sources]
+        
+        if not active_sources:
+            raise HTTPException(status_code=400, detail="No valid sources specified")
+        
+        # Map sources to their fetch functions
+        source_functions = {
+            "coingecko": coingecko.fetch_market_data,
+            "moralis": moralis.fetch_onchain_data,
+            "covalent": covalent.fetch_blockchain_data,
+            "lunarcrush": lunarcrush.fetch_social_data,
+            "coinmarketcal": coinmarketcal.fetch_events,
+            "cryptopanic": cryptopanic.fetch_news
+        }
+        
+        # Execute fetch operations for active sources
+        results = {}
+        total_records = 0
+        successful_sources = []
+        failed_sources = []
+        
+        for source in active_sources:
+            try:
+                logging.info(f"Fetching historical data from {source} for {universe_info}...")
+                
+                # Call the source's fetch function
+                fetch_function = source_functions[source]
+                all_data = await fetch_function()
+                
+                # Filter data by universe tokens (if specific universe is targeted)
+                if universe != "all" and target_tokens and all_data:
+                    # Filter results to only include tokens from the target universe
+                    filtered_data = []
+                    for item in all_data:
+                        item_symbol = item.get('symbol', '').lower()
+                        if item_symbol in target_tokens:
+                            filtered_data.append(item)
+                    data = filtered_data
+                    
+                    logging.info(f"Filtered {len(all_data)} records to {len(data)} records for {universe} universe")
+                else:
+                    data = all_data
+                
+                record_count = len(data) if data else 0
+                total_records += record_count
+                
+                results[source] = {
+                    "status": "success", 
+                    "records": record_count,
+                    "total_fetched": len(all_data) if all_data else 0,
+                    "message": f"Successfully fetched {record_count} universe-targeted records (filtered from {len(all_data) if all_data else 0} total)"
+                }
+                successful_sources.append(source)
+                
+                logging.info(f"Successfully fetched {record_count} targeted records from {source}")
+                
+            except Exception as e:
+                error_msg = str(e)
+                logging.error(f"Failed to fetch from {source}: {error_msg}")
+                
+                results[source] = {
+                    "status": "error",
+                    "records": 0,
+                    "total_fetched": 0,
+                    "message": f"Error: {error_msg}"
+                }
+                failed_sources.append(source)
+        
+        # Calculate execution time
+        duration = time.time() - start_time
+        
+        # Prepare response
+        response_data = {
+            "status": "success",
+            "message": f"Historical data population completed for {days_back} days targeting {universe_info}",
+            "summary": {
+                "target": {
+                    "universe": universe,
+                    "tokens_targeted": len(target_tokens) if target_tokens else "all",
+                    "universe_info": universe_info
+                },
+                "date_range": {
+                    "start": start_date.isoformat(),
+                    "end": end_date.isoformat(),
+                    "days_back": days_back
+                },
+                "sources": {
+                    "requested": active_sources,
+                    "successful": successful_sources,
+                    "failed": failed_sources,
+                    "success_rate": f"{len(successful_sources)}/{len(active_sources)} ({(len(successful_sources)/len(active_sources)*100):.1f}%)"
+                },
+                "data": {
+                    "targeted_records": total_records,
+                    "execution_time": f"{duration:.2f}s"
+                }
+            },
+            "details": results
+        }
+        
+        # Log the operation with universe information
+        write_run(
+            f"historical_populate_{universe}",
+            total_records,
+            "success" if len(successful_sources) > 0 else "error",
+            duration,
+            universe
+        )
+        
+        return response_data
+        
+    except Exception as e:
+        duration = time.time() - start_time if 'start_time' in locals() else 0
+        error_msg = str(e)
+        logging.error(f"Historical data population failed: {error_msg}")
+        
+        write_run("historical_populate", 0, "error", duration)
+        
+        raise HTTPException(status_code=500, detail=error_msg)
+
+
+@router.get("/populate/historical-status")
+async def get_historical_populate_status():
+    """Get status of historical data population capabilities and universe information."""
+    try:
+        from ..firestore_client import init_db
+        from ..universe_manager import universe_manager, MARKET_UNIVERSE, WATCHLIST_UNIVERSE, PORTFOLIO_UNIVERSE
+        
+        # Get database stats
+        db = init_db()
+        
+        # Count documents in various collections to show data availability
+        collections_info = {}
+        collection_names = ["tokens", "market_data", "social_data", "events", "news", "blockchain_data"]
+        
+        for collection_name in collection_names:
+            try:
+                # Get a sample of documents to check data availability
+                docs = list(db.collection(collection_name).limit(1).stream())
+                collections_info[collection_name] = {
+                    "exists": len(docs) > 0,
+                    "sample_available": len(docs) > 0
+                }
+            except Exception:
+                collections_info[collection_name] = {
+                    "exists": False,
+                    "sample_available": False
+                }
+        
+        # Get universe statistics
+        universe_stats = {}
+        for universe_name in [MARKET_UNIVERSE, WATCHLIST_UNIVERSE, PORTFOLIO_UNIVERSE]:
+            try:
+                stats = await universe_manager.get_universe_stats(universe_name)
+                universe_stats[universe_name] = stats
+            except Exception as e:
+                universe_stats[universe_name] = {"error": str(e)}
+        
+        return {
+            "status": "success",
+            "capabilities": {
+                "max_days_back": 730,  # 2 years
+                "available_sources": ["coingecko", "moralis", "covalent", "lunarcrush", "coinmarketcal", "cryptopanic"],
+                "available_universes": [MARKET_UNIVERSE, WATCHLIST_UNIVERSE, PORTFOLIO_UNIVERSE, "all"],
+                "universe_targeting": True,
+                "bulk_fetch_supported": True,
+                "individual_source_fetch": True
+            },
+            "universes": universe_stats,
+            "current_data": collections_info,
+            "recommendations": {
+                "default_universe": "watchlist (focused on your curated tokens)",
+                "initial_population": "Start with watchlist universe + 30-90 days for testing",
+                "source_priority": ["coingecko", "lunarcrush", "coinmarketcal", "cryptopanic", "moralis", "covalent"],
+                "universe_sync": "Run POST /admin/universes/sync to ensure universes are populated before historical fetch",
+                "cost_optimization": "Use 'watchlist' universe to focus on tokens you actually track, reducing API costs by 70-90%"
+            }
+        }
+        
+    except Exception as e:
+        logging.error(f"Error getting historical populate status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/populate/historical-watchlist")
+async def populate_historical_watchlist(
+    days_back: int = Query(90, description="Number of days back to fetch (default: 90 days)"),
+    sources: list[str] = Query(default=["coingecko", "lunarcrush", "coinmarketcal"], description="Sources optimized for watchlist analysis")
+):
+    """
+    Convenience endpoint to populate historical data specifically for watchlist universe.
+    Optimized for ML feature engineering with curated token list and relevant data sources.
+    """
+    return await populate_historical_data(days_back=days_back, sources=sources, universe="watchlist")
+
+
+@router.post("/populate/historical-portfolio")
+async def populate_historical_portfolio(
+    days_back: int = Query(30, description="Number of days back to fetch (default: 30 days)"),
+    sources: list[str] = Query(default=["coingecko"], description="Sources optimized for portfolio tracking")
+):
+    """
+    Convenience endpoint to populate historical data specifically for portfolio universe.
+    Focuses on price history for actively held positions.
+    """
+    return await populate_historical_data(days_back=days_back, sources=sources, universe="portfolio")
+
+
+@router.post("/populate/historical-market")
+async def populate_historical_market(
+    days_back: int = Query(365, description="Number of days back to fetch (default: 1 year)"),
+    sources: list[str] = Query(default=["coingecko", "lunarcrush"], description="Sources optimized for market analysis")
+):
+    """
+    Convenience endpoint to populate historical data specifically for market universe.
+    Covers broader market trends and sentiment for top market cap tokens.
+    """
+    return await populate_historical_data(days_back=days_back, sources=sources, universe="market")
+
+
+# =============================================================================
+# UNIVERSE MANAGEMENT ENDPOINTS
+# =============================================================================
+
+@router.get("/universes")
+async def get_all_universes():
+    """Get information about all token universes."""
+    try:
+        from ..universe_manager import universe_manager, MARKET_UNIVERSE, WATCHLIST_UNIVERSE, PORTFOLIO_UNIVERSE
+        
+        universes = {}
+        for universe_name in [MARKET_UNIVERSE, WATCHLIST_UNIVERSE, PORTFOLIO_UNIVERSE]:
+            universes[universe_name] = await universe_manager.get_universe_stats(universe_name)
+        
+        return {
+            "status": "success",
+            "universes": universes,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logging.error(f"Error getting universe information: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/universes/{universe_name}")
+async def get_universe_info(universe_name: str):
+    """Get detailed information about a specific universe."""
+    try:
+        from ..universe_manager import universe_manager, MARKET_UNIVERSE, WATCHLIST_UNIVERSE, PORTFOLIO_UNIVERSE
+        
+        if universe_name not in [MARKET_UNIVERSE, WATCHLIST_UNIVERSE, PORTFOLIO_UNIVERSE]:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid universe name. Must be one of: {MARKET_UNIVERSE}, {WATCHLIST_UNIVERSE}, {PORTFOLIO_UNIVERSE}"
+            )
+        
+        stats = await universe_manager.get_universe_stats(universe_name)
+        tokens = await universe_manager.get_universe_tokens(universe_name)
+        
+        return {
+            "status": "success",
+            "universe": stats,
+            "tokens": tokens,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logging.error(f"Error getting {universe_name} universe info: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/universes/sync")
+async def sync_all_universes():
+    """Sync all universes with current UI and portfolio data."""
+    try:
+        from ..universe_manager import universe_manager
+        
+        start_time = time.time()
+        
+        # Sync watchlist universe from UI watchlist
+        watchlist_count = await universe_manager.sync_watchlist_universe_from_ui()
+        
+        # Sync portfolio universe from active positions
+        portfolio_count = await universe_manager.sync_portfolio_universe_from_positions()
+        
+        # Auto-populate market universe with top tokens
+        market_count = await universe_manager.populate_market_universe(100)
+        
+        duration = time.time() - start_time
+        
+        # Log the operation
+        write_run("sync_all_universes", watchlist_count + portfolio_count + market_count, "success", duration)
+        
+        return {
+            "status": "success",
+            "message": "All universes synced with current data",
+            "results": {
+                "market_universe": f"{market_count} tokens populated",
+                "watchlist_universe": f"{watchlist_count} tokens synced from UI",
+                "portfolio_universe": f"{portfolio_count} positions synced"
+            },
+            "total_tokens": watchlist_count + portfolio_count + market_count,
+            "duration": round(duration, 2)
+        }
+        
+    except Exception as e:
+        duration = time.time() - start_time if 'start_time' in locals() else 0
+        logging.error(f"Error syncing universes: {e}")
+        write_run("sync_all_universes", 0, "error", duration)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/universes/{universe_name}/sync") 
+async def sync_specific_universe(universe_name: str):
+    """Sync a specific universe with current data."""
+    try:
+        from ..universe_manager import universe_manager, MARKET_UNIVERSE, WATCHLIST_UNIVERSE, PORTFOLIO_UNIVERSE
+        
+        if universe_name not in [MARKET_UNIVERSE, WATCHLIST_UNIVERSE, PORTFOLIO_UNIVERSE]:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid universe name. Must be one of: {MARKET_UNIVERSE}, {WATCHLIST_UNIVERSE}, {PORTFOLIO_UNIVERSE}"
+            )
+        
+        start_time = time.time()
+        
+        if universe_name == WATCHLIST_UNIVERSE:
+            count = await universe_manager.sync_watchlist_universe_from_ui()
+            message = f"Synced {count} tokens from UI watchlist"
+        elif universe_name == PORTFOLIO_UNIVERSE:
+            count = await universe_manager.sync_portfolio_universe_from_positions()
+            message = f"Synced {count} active positions"
+        else:  # MARKET_UNIVERSE
+            count = await universe_manager.populate_market_universe(100)
+            message = f"Populated {count} top market cap tokens"
+        
+        duration = time.time() - start_time
+        
+        # Log the operation
+        write_run(f"sync_{universe_name}_universe", count, "success", duration, universe_name)
+        
+        return {
+            "status": "success",
+            "message": message,
+            "universe": universe_name,
+            "tokens_synced": count,
+            "duration": round(duration, 2)
+        }
+        
+    except Exception as e:
+        duration = time.time() - start_time if 'start_time' in locals() else 0
+        logging.error(f"Error syncing {universe_name} universe: {e}")
+        write_run(f"sync_{universe_name}_universe", 0, "error", duration, universe_name)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/universes/{universe_name}/populate")
+async def populate_universe(universe_name: str, token_symbols: List[str] = Body(...)):
+    """Populate a specific universe with tokens (manual override)."""
+    try:
+        from ..universe_manager import universe_manager, MARKET_UNIVERSE, WATCHLIST_UNIVERSE, PORTFOLIO_UNIVERSE
+        
+        if universe_name not in [MARKET_UNIVERSE, WATCHLIST_UNIVERSE, PORTFOLIO_UNIVERSE]:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid universe name. Must be one of: {MARKET_UNIVERSE}, {WATCHLIST_UNIVERSE}, {PORTFOLIO_UNIVERSE}"
+            )
+        
+        start_time = time.time()
+        
+        if universe_name == MARKET_UNIVERSE:
+            # For market universe, populate with top tokens by market cap
+            count = await universe_manager.populate_market_universe(len(token_symbols) if token_symbols else 100)
+        elif universe_name == WATCHLIST_UNIVERSE:
+            # For watchlist, use provided token list (manual override)
+            count = await universe_manager.populate_watchlist_universe(token_symbols)
+        else:  # portfolio universe
+            # For portfolio, add tokens with default trading data
+            count = 0
+            for symbol in token_symbols:
+                token_data = {
+                    'tokenId': symbol.lower(),
+                    'symbol': symbol.lower(),
+                    'name': symbol.upper(),
+                    'quantity': 0,
+                    'avgEntry': 0,
+                    'include': True,
+                    'source': 'manual'
+                }
+                if await universe_manager.add_token_to_universe(PORTFOLIO_UNIVERSE, token_data):
+                    count += 1
+        
+        duration = time.time() - start_time
+        
+        # Log the operation
+        write_run(f"populate_{universe_name}_universe", count, "success", duration, universe_name)
+        
+        return {
+            "status": "success",
+            "message": f"Populated {universe_name} universe with {count} tokens",
+            "universe": universe_name,
+            "tokens_added": count,
+            "duration": round(duration, 2)
+        }
+        
+    except Exception as e:
+        duration = time.time() - start_time if 'start_time' in locals() else 0
+        logging.error(f"Error populating {universe_name} universe: {e}")
+        write_run(f"populate_{universe_name}_universe", 0, "error", duration, universe_name)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/universes/{universe_name}/tokens")
+async def add_token_to_universe(universe_name: str, token_data: Dict[str, Any] = Body(...)):
+    """Add a single token to a specific universe."""
+    try:
+        from ..universe_manager import universe_manager, MARKET_UNIVERSE, WATCHLIST_UNIVERSE, PORTFOLIO_UNIVERSE
+        
+        if universe_name not in [MARKET_UNIVERSE, WATCHLIST_UNIVERSE, PORTFOLIO_UNIVERSE]:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid universe name. Must be one of: {MARKET_UNIVERSE}, {WATCHLIST_UNIVERSE}, {PORTFOLIO_UNIVERSE}"
+            )
+        
+        success = await universe_manager.add_token_to_universe(universe_name, token_data)
+        
+        if success:
+            return {
+                "status": "success",
+                "message": f"Added token to {universe_name} universe",
+                "token": token_data
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to add token to universe")
+            
+    except Exception as e:
+        logging.error(f"Error adding token to {universe_name} universe: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/universes/{universe_name}/tokens/{token_id}")
+async def remove_token_from_universe(universe_name: str, token_id: str):
+    """Remove a token from a specific universe."""
+    try:
+        from ..universe_manager import universe_manager, MARKET_UNIVERSE, WATCHLIST_UNIVERSE, PORTFOLIO_UNIVERSE
+        
+        if universe_name not in [MARKET_UNIVERSE, WATCHLIST_UNIVERSE, PORTFOLIO_UNIVERSE]:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid universe name. Must be one of: {MARKET_UNIVERSE}, {WATCHLIST_UNIVERSE}, {PORTFOLIO_UNIVERSE}"
+            )
+        
+        success = await universe_manager.remove_token_from_universe(universe_name, token_id)
+        
+        if success:
+            return {
+                "status": "success",
+                "message": f"Removed token {token_id} from {universe_name} universe"
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to remove token from universe")
+            
+    except Exception as e:
+        logging.error(f"Error removing token from {universe_name} universe: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 

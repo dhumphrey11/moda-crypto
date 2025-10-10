@@ -51,6 +51,12 @@ const AdminPage: NextPage = () => {
     const [settingsEditing, setSettingsEditing] = useState(false);
     const [settingsForm, setSettingsForm] = useState<typeof data.portfolioSettings>(null);
     const [populateTokens, setPopulateTokens] = useState(40);
+    
+    // Historical data population state
+    const [historicalDays, setHistoricalDays] = useState(90); // Default to 3 months
+    const [historicalSources, setHistoricalSources] = useState('all');
+    const [historicalPopulating, setHistoricalPopulating] = useState(false);
+    const [historicalResult, setHistoricalResult] = useState<any>(null);
 
     useEffect(() => {
         loadAdminData();
@@ -134,6 +140,39 @@ const AdminPage: NextPage = () => {
             alert(`Successfully populated watchlist with ${response.tokens_added} tokens`);
         } catch (error) {
             alert(`Failed to populate watchlist: ${error}`);
+        }
+    };
+
+    const populateHistoricalData = async () => {
+        try {
+            setHistoricalPopulating(true);
+            setHistoricalResult(null);
+            
+            const sources = historicalSources === 'all' ? ['all'] : [historicalSources];
+            const sourcesParam = sources.join(',');
+            
+            const response = await dataService.postToBackend(
+                `/admin/populate/historical-data?days_back=${historicalDays}&sources=${sourcesParam}`, 
+                {}
+            ) as any;
+            
+            setHistoricalResult(response);
+            
+            if (response.status === 'success') {
+                alert(`Historical data population completed successfully!\nTotal records: ${response.summary?.data?.total_records || 0}\nExecution time: ${response.summary?.data?.execution_time || 'N/A'}`);
+            } else {
+                alert(`Historical data population completed with some issues: ${response.message}`);
+            }
+            
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            setHistoricalResult({
+                status: 'error',
+                message: errorMessage
+            });
+            alert(`Failed to populate historical data: ${errorMessage}`);
+        } finally {
+            setHistoricalPopulating(false);
         }
     };
 
@@ -543,6 +582,7 @@ const AdminPage: NextPage = () => {
                 {/* Populate Tab */}
                 {activeTab === 'populate' && (
                     <div className="space-y-6">
+                        {/* Watchlist Population */}
                         <div className="bg-white rounded-lg shadow">
                             <div className="px-6 py-4 border-b border-gray-200">
                                 <h3 className="text-lg font-medium text-gray-900">Populate Watchlist</h3>
@@ -572,6 +612,123 @@ const AdminPage: NextPage = () => {
                                     >
                                         Populate Watchlist
                                     </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Historical Data Population */}
+                        <div className="bg-white rounded-lg shadow">
+                            <div className="px-6 py-4 border-b border-gray-200">
+                                <h3 className="text-lg font-medium text-gray-900">Historical Data Population</h3>
+                                <p className="text-sm text-gray-600 mt-1">Back-populate historical data from external APIs (up to 2 years)</p>
+                            </div>
+                            <div className="px-6 py-4">
+                                <div className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Time Range Selection */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Time Range:
+                                            </label>
+                                            <select 
+                                                value={historicalDays}
+                                                onChange={(e) => setHistoricalDays(Number(e.target.value))}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value={7}>1 week (7 days)</option>
+                                                <option value={30}>1 month (30 days)</option>
+                                                <option value={90}>3 months (90 days)</option>
+                                                <option value={180}>6 months (180 days)</option>
+                                                <option value={365}>1 year (365 days)</option>
+                                                <option value={730}>2 years (730 days)</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Data Sources Selection */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Data Sources:
+                                            </label>
+                                            <select 
+                                                value={historicalSources}
+                                                onChange={(e) => setHistoricalSources(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value="all">All Sources</option>
+                                                <option value="coingecko">CoinGecko (Market Data)</option>
+                                                <option value="lunarcrush">LunarCrush (Social Data)</option>
+                                                <option value="coinmarketcal">CoinMarketCal (Events)</option>
+                                                <option value="cryptopanic">CryptoPanic (News)</option>
+                                                <option value="moralis">Moralis (On-chain)</option>
+                                                <option value="covalent">Covalent (Blockchain)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {/* Information Panel */}
+                                    <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                                        <div className="flex">
+                                            <div className="flex-shrink-0">
+                                                <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                                </svg>
+                                            </div>
+                                            <div className="ml-3">
+                                                <h3 className="text-sm font-medium text-blue-800">
+                                                    Historical Data Population Information
+                                                </h3>
+                                                <div className="mt-2 text-sm text-blue-700">
+                                                    <ul className="list-disc list-inside space-y-1">
+                                                        <li>Longer time ranges may take several minutes to complete</li>
+                                                        <li>Start with shorter periods (1 week - 1 month) for testing</li>
+                                                        <li>All sources will fetch available historical data within the specified range</li>
+                                                        <li>This operation runs synchronously and will show progress</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Button */}
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <button
+                                                onClick={() => populateHistoricalData()}
+                                                disabled={historicalPopulating}
+                                                className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                {historicalPopulating ? 'Populating...' : 'Start Historical Population'}
+                                            </button>
+                                        </div>
+                                        <div className="text-sm text-gray-500">
+                                            Selected: {historicalDays} days, {historicalSources === 'all' ? 'All sources' : historicalSources}
+                                        </div>
+                                    </div>
+
+                                    {/* Progress/Results Display */}
+                                    {historicalResult && (
+                                        <div className="mt-6 p-4 border rounded-md">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h4 className="font-medium text-gray-900">Population Results</h4>
+                                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                                    historicalResult.status === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                                }`}>
+                                                    {historicalResult.status.toUpperCase()}
+                                                </span>
+                                            </div>
+                                            <div className="text-sm text-gray-600 space-y-2">
+                                                <p><strong>Message:</strong> {historicalResult.message}</p>
+                                                {historicalResult.summary && (
+                                                    <>
+                                                        <p><strong>Date Range:</strong> {new Date(historicalResult.summary.date_range.start).toLocaleDateString()} to {new Date(historicalResult.summary.date_range.end).toLocaleDateString()}</p>
+                                                        <p><strong>Success Rate:</strong> {historicalResult.summary.sources.success_rate}</p>
+                                                        <p><strong>Total Records:</strong> {historicalResult.summary.data.total_records}</p>
+                                                        <p><strong>Execution Time:</strong> {historicalResult.summary.data.execution_time}</p>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
